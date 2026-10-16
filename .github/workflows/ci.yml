@@ -1,0 +1,31 @@
+name: Rust CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Compile
+        run: cargo check --all-targets
+      - name: Test
+        run: cargo test --all-targets
+      - name: Validate recipes
+        run: cargo run -- validate
+      - name: Audit accidental plaintext secrets
+        shell: bash
+        run: |
+          if grep -RInE --exclude-dir=.git --exclude-dir=target --exclude='Cargo.lock' 'Bearer[[:space:]]+[A-Za-z0-9_-]{20,}' .; then
+            echo "Potential hardcoded bearer token detected"
+            exit 1
+          fi
