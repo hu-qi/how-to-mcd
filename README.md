@@ -1,73 +1,79 @@
-# 🍔 HowToMCD · 在家做麦麦风味
+# 🍔 HowToMCD · 程序员在家做麦麦风味
 
-> 麦麦灵感，家里开做！ | Inspired by McDonald's menus, cooked your way at home.
+> 麦麦灵感，家里开做！Inspired by McDonald's menu ideas, made independently at home.
 
-[![CI](https://github.com/hu-qi/how-to-mcd/actions/workflows/ci.yml/badge.svg)](https://github.com/hu-qi/how-to-mcd/actions/workflows/ci.yml)
+**HowToMCD** 是用 **Rust** 开发的开源 AI 烹饪 Skill + CLI：通过麦当劳中国 **真实 MCP 服务**获取官方菜单与营养数据，再关联**社区独立原创**的家庭食谱，根据人数和厨具生成可执行烹饪建议。
 
-**HowToMCD** 是面向程序员与家庭厨房的开源 AI 烹饪 Skill：从麦当劳中国官方 MCP 查询真实餐品及营养信息，关联社区独立创作的家庭风味食谱，并根据人数、食材与厨具形成可执行烹饪步骤。
+本项目不是麦当劳官方产品，不提供商业配方。官方 MCP 营养数据不等于社区自制餐品的营养数据；不下单、不支付，不处理会员数据。
 
-本项目**不是麦当劳官方产品**，不提供官方商业配方；社区食谱不等于官方配方，也不把家庭自制品的营养视为官方餐品营养。项目默认只读，不下单、不支付，不访问会员私有信息。
+## 🚀 快速开始
 
-## ✨ 功能
-- **真实 MCP**：通过 Streamable HTTP + Bearer Token 调用 `list-nutrition-foods`、`query-meals`、`query-meal-detail`（前两者分别用于营养和门店菜单，详情工具供支持的客户端使用）。
-- **家庭食谱**：三个原创入门食谱——香煎鸡腿汉堡、香脆土豆条、香酥鸡块；完整 JSON 数据，便于社区 PR。
-- **按人数缩放**：单位、用量、步骤与食安提示可被程序处理。
-- **可复现**：Python 标准库实现 MCP 客户端，离线单测与手动触发的真实 MCP 冒烟测试隔离。
-- **可移植 Skill**：参见 [SKILL.md](SKILL.md)，可交给支持自定义 Skill 和 MCP 的 AI 客户端使用。
+需要 **Rust 1.90+**。
 
-## 🚀 30 秒上手
-
-需要 Python 3.10+，核心功能**无第三方依赖**。
-
-```bash
+```sh
 git clone https://github.com/hu-qi/how-to-mcd.git
 cd how-to-mcd
-python3 -m howtomcd recipes
-python3 -m howtomcd show chicken-burger --servings 3
-python3 -m unittest discover -s tests -v
+cargo run -- recipes
+cargo run -- show chicken-burger --servings 4
+cargo run -- show crispy-fries
+cargo run -- show chicken-nuggets
+cargo test
+cargo run -- validate
 ```
 
-启用 **真实麦当劳 MCP**（不要将 Token 提交到仓库）：
+三个独立设计的家庭食谱均包含食材数量、厨具、步骤、过敏原与食品安全提醒。鼓励社区实际动手验证后通过 PR 改进。
 
-```bash
-export MCD_MCP_TOKEN="从 https://open.mcd.cn/mcp 申请的个人 Token"
-python3 -m howtomcd tools
-python3 -m howtomcd nutrition
-python3 -m howtomcd menu --store-code 你的门店编码 --be-code 你的BE编码
+## 🔗 真实 McDonald's China MCP
+
+官方文档：https://open.mcd.cn/mcp/doc
+
+MCP Endpoint：`https://mcp.mcd.cn`（Streamable HTTP + Bearer Token）。
+
+```sh
+# 请使用个人环境变量；切勿把真实 Token 提交到 GitHub
+export MCD_MCP_TOKEN="<your-new-personal-token>"
+cargo run -- mcp tools
+cargo run -- mcp nutrition
+# 先查询工具 schema，再使用所需参数调用允许的只读工具
+cargo run -- mcp call query-meals --args '{"storeCode":"<actual-store-code>","beCode":"<actual-be-code>"}'
 ```
 
-`menu` 只查询门店在售菜单，不会发起订单。真实菜单需填写有效门店码和 BE 码；未指定时可先调用 `tools` 检查 MCP 工具可用性。对于支持 MCP 的 AI 客户端，参见 [mcp-config.example.json](mcp-config.example.json)；配置中的 `${MCD_MCP_TOKEN}` 仅是环境变量占位符，取决于客户端是否支持展开。
+目前只允许调用三个只读工具：`list-nutrition-foods`、`query-meals`、`query-meal-detail`。代码使用官方 Rust SDK `rmcp`，不自行解析底层 SSE 或实现 MCP 协议。
 
-## 🧑‍🍳 示例指令
+- [MCP_INTEGRATION.md](MCP_INTEGRATION.md)：集成架构、调用流程及测试方法
+- [mcp-config.example.json](mcp-config.example.json)：仅包含环境变量占位符的 MCP 配置
+- [SKILL.md](SKILL.md)：AI Agent 的 Skill 指引
 
-> 我只有空气炸锅，想做两份香酥鸡块。请列出食材和制作步骤，注意鸡肉熟度。
+注意：部分 MCP 客户端不会自动展开 JSON 中的 `${MCD_MCP_TOKEN}`，请通过该客户端支持的安全密钥配置机制注入。
 
-> 从 MCP 查询真实餐品营养数据，找到名称包含“鸡”的餐品，并单独给我推荐适合家庭厨房的自制食谱。请区分官方数据与社区食谱。
+## 🦀 Rust 项目结构
 
-> 我有鸡腿肉、面包胚和生菜，帮我调整香煎鸡腿汉堡食谱，并把用量换算成三人份。
-
-## 📦 项目结构
 ```text
-howtomcd/                 # 标准库 MCP 客户端、食谱校验与 CLI
-recipes/                  # 社区原创食谱 JSON
-tests/                    # 离线自动化测试
-.github/workflows/        # CI 与手动真实 MCP 冒烟验证
-SKILL.md                  # Agent 使用指令
-MCP_INTEGRATION.md        # 实际 MCP 使用说明与限制
-CONTRIBUTING.md           # 贡献食谱指南
-mcp-config.example.json   # 无敏感信息的接入示例
-CONTEST_DECLARATION.md    # 赛事官方原文参赛声明
+src/
+  main.rs              # clap CLI
+  lib.rs               # Rust library
+  mcp.rs               # rmcp 只读官方服务客户端
+  recipes.rs           # serde JSON 食谱模型 + 校验 + 份量换算
+recipes/               # 社区原创家庭食谱
+.github/workflows/
+  ci.yml               # 构建 + 离线测试 + 内容校验
+  mcp-smoke.yml        # 手动真实 MCP 冒烟测试（需 Secret）
+SKILL.md               # Agent 烹饪指引
+MCP_INTEGRATION.md     # MCP 接入记录
+CONTEST_DECLARATION.md # 官方参赛声明
 ```
 
-## 🔐 Token 安全与 CI
+## 🔒 CI 密钥保护
 
-- 永远不要把真实 Token 写进 README、Skill、Issue、日志或 JSON 示例。
-- 本地通过环境变量 `MCD_MCP_TOKEN` 注入。
-- GitHub Actions 通过 **Settings → Secrets and variables → Actions → New repository secret** 添加名为 `MCD_MCP_TOKEN` 的 Secret；`MCP Smoke Test` 工作流手动执行，避免向 Fork PR 暴露密钥。
-- GitHub 默认 CI 只使用无密钥的 mock 测试，避免把网络故障误判成代码故障。
+进入 **GitHub 仓库 → Settings → Secrets and variables → Actions → New repository secret**，添加：
 
-## 🤝 开源与参赛
+- **Name：** `MCD_MCP_TOKEN`
+- **Value：** 麦当劳开放平台颁发的有效 Token（建议轮换聊天中曾明文分享的旧 Token）
 
-欢迎提交真实厨房实践后的改进、可替换食材、步骤照片、无障碍烹饪体验等，见 [CONTRIBUTING.md](CONTRIBUTING.md)。本项目参加 [麦当劳程序员创意开发大赛](https://github.com/M-China/mcd-developer-innovation-challenge)，详情见 [MCP_INTEGRATION.md](MCP_INTEGRATION.md) 和 [CONTEST_DECLARATION.md](CONTEST_DECLARATION.md)。
+普通 `Rust CI` 不使用 Secret，可安全运行于 PR；`MCP Smoke Test` 仅支持手动触发，执行真实 `tools/list` 和 `list-nutrition-foods`。任何真实 MCP 测试必须以 Action 成功结果为准，仓库提供配置不等于已经通过。
 
-使用 MIT 协议发布自有代码；第三方商标归各自权利人所有。不保证家庭菜品与门店成品相同；如涉及过敏原或饮食限制，请自行核实食材标签。
+## 🌱 社区共创
+
+项目借鉴 HowToCook 的开发者友好食谱格式，由社区共同完善步骤、食安提示及厨房实测记录；参考 [CONTRIBUTING.md](CONTRIBUTING.md) 提交 PR。
+
+本项目报名 [麦当劳程序员创意开发大赛](https://github.com/M-China/mcd-developer-innovation-challenge)，并采用 MIT 许可证发布自有代码。参赛要求公开仓库；不使用未经授权的官方品牌标识。
