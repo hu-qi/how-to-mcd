@@ -1,0 +1,32 @@
+name: MCP Smoke Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Check repository secret presence
+        env:
+          MCD_MCP_TOKEN: ${{ secrets.MCD_MCP_TOKEN }}
+        shell: bash
+        run: |
+          if [ -z "$MCD_MCP_TOKEN" ]; then
+            echo "::error::Configure Actions repository secret MCD_MCP_TOKEN first"
+            exit 1
+          fi
+      - name: Discover MCP tools (read-only)
+        env:
+          MCD_MCP_TOKEN: ${{ secrets.MCD_MCP_TOKEN }}
+        run: cargo run -- mcp tools
+      - name: Query nutrition (read-only)
+        env:
+          MCD_MCP_TOKEN: ${{ secrets.MCD_MCP_TOKEN }}
+        run: cargo run -- mcp nutrition
