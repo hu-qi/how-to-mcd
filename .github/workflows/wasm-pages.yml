@@ -1,0 +1,86 @@
+name: Rust WASM Demo and Pages
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: v0.15.0
+      - name: Compile shared Rust recipes to WebAssembly
+        run: wasm-pack build crates/howtomcd-wasm --target web --release --out-dir ../../site/pkg --no-opt
+      - name: Assemble safe public demo
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p site/assets
+          cp web/index.html site/index.html
+          cp web/app.js site/assets/app.js
+          cp web/app.css site/assets/app.css
+          touch site/.nojekyll
+          test -s site/pkg/howtomcd_wasm_bg.wasm
+          test -s site/pkg/howtomcd_wasm.js
+          node --check site/assets/app.js
+      - name: Execute real Rust/WASM recipe calculations in Node.js
+        shell: bash
+        run: |
+          node --input-type=module <<'EOF'
+          import { readFileSync } from 'node:fs';
+          import assert from 'node:assert/strict';
+          const wasm = await import('./site/pkg/howtomcd_wasm.js');
+          await wasm.default(readFileSync('./site/pkg/howtomcd_wasm_bg.wasm'));
+          const list = JSON.parse(wasm.recipes_json());
+          assert.equal(list.length, 3);
+          const scaled = JSON.parse(wasm.recipe_json('chicken-burger', 4));
+          assert.equal(scaled.requested_servings, 4);
+          assert.equal(scaled.ingredients[0].amount, 600);
+          let invalidRejected = false;
+          try { wasm.recipe_json('chicken-burger', 0); } catch (_) { invalidRejected = true; }
+          assert.equal(invalidRejected, true);
+          console.log('Rust WebAssembly recipe test passed.');
+          EOF
+      - name: Upload public demo artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: howtomcd-public-demo
+          path: site/
+          retention-days: 14
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.PAGES_ENABLED == 'true')
+    needs: wasm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download vetted demo artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: howtomcd-public-demo
+          path: site/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
