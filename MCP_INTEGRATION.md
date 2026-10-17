@@ -7,7 +7,7 @@
 - Remote endpoint: `https://mcp.mcd.cn`
 - Transport: **Streamable HTTP**
 - Authentication: `Authorization: Bearer <token>` via environment variable `MCD_MCP_TOKEN`
-- Implementation: **Rust** with the official `rmcp` SDK (not a mock MCP service)
+- Implementation: **Rust** Streamable HTTP JSON-RPC client using `reqwest`, with the official `rmcp` SDK retained as an optional alternative (`MCD_MCP_TRANSPORT=rmcp`). Both connect to the **real** official server; no mock results are returned.
 
 ## Why MCP matters to the project
 
@@ -39,7 +39,7 @@ This repository provides a manually runnable GitHub Action (`MCP Smoke Test`) th
 ## Authorization and risk controls
 
 - All tool invocations pass through an explicit allowlist in `src/mcp.rs`.
-- Authorization is supplied by RMCP's dedicated Bearer header builder; do not include `Bearer ` in the environment variable.
+- Authorization is supplied by Rust `reqwest::RequestBuilder::bearer_auth` (or RMCP's dedicated auth builder when explicitly selected); do not include `Bearer ` in the environment variable. The server negotiates MCP protocol version `2025-03-26`.
 - Credentials never appear in examples or committed configuration.
 - Errors intentionally suppress untrusted network error detail and credential-bearing headers in CLI output.
 - No live MCP responses are fabricated; when unavailable, the program reports failure.

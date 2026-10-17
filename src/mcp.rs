@@ -45,6 +45,9 @@ pub fn validate_call(tool: &str, arguments: &Value) -> Result<()> {
 }
 
 pub async fn discover(token: &str) -> Result<Value> {
+    if std::env::var("MCD_MCP_TRANSPORT").as_deref() != Ok("rmcp") {
+        return crate::mcp_http::discover(token).await;
+    }
     let transport = StreamableHttpClientTransport::from_config(
         StreamableHttpClientTransportConfig::with_uri(ENDPOINT).auth_header(token.to_owned()),
     );
@@ -56,6 +59,9 @@ pub async fn discover(token: &str) -> Result<Value> {
 }
 
 pub async fn call(token: &str, tool: &str, arguments: Value) -> Result<Value> {
+    if std::env::var("MCD_MCP_TRANSPORT").as_deref() != Ok("rmcp") {
+        return crate::mcp_http::call(token, tool, arguments).await;
+    }
     validate_call(tool, &arguments)?;
     let map: Map<String, Value> = arguments.as_object().cloned().unwrap_or_default();
     let transport = StreamableHttpClientTransport::from_config(
