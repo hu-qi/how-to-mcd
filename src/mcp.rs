@@ -1,7 +1,7 @@
 //! Read-only McDonald's China MCP client, using the official Rust MCP SDK.
 use anyhow::{bail, Result};
 use rmcp::{
-    model::{CallToolRequestParams, ClientConfig},
+    model::{CallToolRequestParams, ClientConfig, ProtocolVersion},
     transport::{
         streamable_http_client::StreamableHttpClientTransportConfig,
         StreamableHttpClientTransport,
@@ -11,6 +11,15 @@ use rmcp::{
 use serde_json::{json, Map, Value};
 
 const ENDPOINT: &str = "https://mcp.mcd.cn";
+
+// McDonald's official server currently negotiates this legacy MCP revision.
+// rmcp 3.5 defaults to a newer revision; explicitly request a compatible one.
+fn client_config() -> ClientConfig {
+    let mut config = ClientConfig::default();
+    config.protocol_version = ProtocolVersion::V_2025_03_26;
+    config
+}
+
 
 pub const ALLOWED_TOOLS: [&str; 3] = [
     "list-nutrition-foods",
@@ -39,7 +48,7 @@ pub async fn discover(token: &str) -> Result<Value> {
     let transport = StreamableHttpClientTransport::from_config(
         StreamableHttpClientTransportConfig::with_uri(ENDPOINT).auth_header(token.to_owned()),
     );
-    let client = ClientConfig::default().serve(transport).await?;
+    let client = client_config().serve(transport).await?;
     let result = client.list_tools(Default::default()).await?;
     let names: Vec<_> = result.tools.iter().map(|t| t.name.to_string()).collect();
     let _ = client.cancel().await;
@@ -52,7 +61,7 @@ pub async fn call(token: &str, tool: &str, arguments: Value) -> Result<Value> {
     let transport = StreamableHttpClientTransport::from_config(
         StreamableHttpClientTransportConfig::with_uri(ENDPOINT).auth_header(token.to_owned()),
     );
-    let client = ClientConfig::default().serve(transport).await?;
+    let client = client_config().serve(transport).await?;
     let result = client
         .call_tool(CallToolRequestParams::new(tool.to_owned()).with_arguments(map))
         .await?;
@@ -67,6 +76,11 @@ pub async fn call(token: &str, tool: &str, arguments: Value) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn client_requests_compatible_protocol() {
+        assert_eq!(client_config().protocol_version, ProtocolVersion::V_2025_03_26);
+    }
 
     #[test]
     fn block_side_effecting_tools() {
