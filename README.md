@@ -92,7 +92,7 @@ cargo run -- mcp nutrition
 cargo run -- mcp call query-meals --args '{"storeCode":"<actual-store-code>","beCode":"<actual-be-code>"}'
 ```
 
-目前只允许调用三个只读工具：`list-nutrition-foods`、`query-meals`、`query-meal-detail`。代码使用官方 Rust SDK `rmcp`，不自行解析底层 SSE 或实现 MCP 协议。
+目前只允许调用三个只读工具：`list-nutrition-foods`、`query-meals`、`query-meal-detail`。代码默认使用 Rust `reqwest` 实现标准 Streamable HTTP / JSON-RPC（含协商、initialized 通知、工具发现、会话头及响应解析），同时保留 `rmcp` SDK 适配供兼容性调试；没有任何模拟 MCP 业务结果。
 
 - [MCP_INTEGRATION.md](MCP_INTEGRATION.md)：集成架构、调用流程及测试方法
 - [mcp-config.example.json](mcp-config.example.json)：仅包含环境变量占位符的 MCP 配置
