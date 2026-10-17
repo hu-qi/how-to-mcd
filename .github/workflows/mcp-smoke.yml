@@ -26,6 +26,24 @@ jobs:
             echo "::error::Configure Actions repository secret MCD_MCP_TOKEN first"
             exit 1
           fi
+      - name: Diagnose remote MCP initialization HTTP status (no response body)
+        env:
+          MCD_MCP_TOKEN: ${{ secrets.MCD_MCP_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          payload='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"howtomcd-ci","version":"0.2.0"}}}'
+          if status=$(curl --proto '=https' --silent --show-error --connect-timeout 10 --max-time 25 \
+            --request POST 'https://mcp.mcd.cn' \
+            --header "Authorization: Bearer $MCD_MCP_TOKEN" \
+            --header 'Content-Type: application/json' \
+            --header 'Accept: application/json, text/event-stream' \
+            --data "$payload" --output /dev/null \
+            --write-out 'HTTP %{http_code}; Content-Type %{content_type}'); then
+            echo "Remote MCP initialization probe: $status"
+          else
+            echo "::warning::Remote MCP initialize request could not complete at the HTTP transport layer."
+          fi
       - name: Discover supported tools over authenticated MCP
         env:
           MCD_MCP_TOKEN: ${{ secrets.MCD_MCP_TOKEN }}
