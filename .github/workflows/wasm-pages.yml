@@ -48,6 +48,9 @@ jobs:
           const scaled = JSON.parse(wasm.recipe_json('chicken-burger', 4));
           assert.equal(scaled.requested_servings, 4);
           assert.equal(scaled.ingredients[0].amount, 600);
+          const match = JSON.parse(wasm.suggestions_json('鸡腿、面包、生菜'));
+          assert.equal(match[0].id, 'chicken-burger');
+          assert.ok(match[0].matched_count >= 3);
           let invalidRejected = false;
           try { wasm.recipe_json('chicken-burger', 0); } catch (_) { invalidRejected = true; }
           assert.equal(invalidRejected, true);

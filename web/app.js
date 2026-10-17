@@ -35,6 +35,7 @@ async function chooseProvider() {
       mode: "native",
       list: () => api("/api/recipes"),
       detail: (id, servings) => api(`/api/recipes/${encodeURIComponent(id)}?servings=${servings}`),
+      suggest: (ingredients) => api(`/api/suggestions?ingredients=${encodeURIComponent(ingredients)}`),
     };
   } catch (_) {
     const url = new URL("pkg/howtomcd_wasm.js", document.baseURI);
@@ -44,6 +45,7 @@ async function chooseProvider() {
       mode: "wasm",
       list: async () => JSON.parse(wasm.recipes_json()),
       detail: async (id, servings) => JSON.parse(wasm.recipe_json(id, servings)),
+      suggest: async (ingredients) => JSON.parse(wasm.suggestions_json(ingredients)),
     };
   }
 }
@@ -268,6 +270,40 @@ function nextStep(direction) {
   renderStep();
 }
 
+async function matchPantry(event) {
+  event.preventDefault();
+  const query = byId("pantry-input").value.trim();
+  const results = byId("pantry-results");
+  if (!query) {
+    results.hidden = false;
+    results.replaceChildren(make("p", "pantry-result-empty", "请先输入至少一种食材。"));
+    return;
+  }
+  results.hidden = false;
+  results.replaceChildren(make("p", "pantry-result-empty", "Rust 正在匹配食谱…"));
+  try {
+    const matches = await provider.suggest(query);
+    results.replaceChildren();
+    for (const match of matches.slice(0, 3)) {
+      const button = make("button", "pantry-result");
+      button.type = "button";
+      button.setAttribute("aria-label", `查看匹配食谱：${match.name}`);
+      button.append(make("strong", "", match.name));
+      button.append(make("span", "pantry-percent", match.score_percent + "%"));
+      button.append(make("small", "", `已具备 ${match.matched_count}/${match.total_count} 种食材`));
+      button.append(make("small", "", match.missing.length
+        ? "仍需准备：" + match.missing.join("、")
+        : "食材清单已齐全，请再核实用量。"));
+      button.append(make("small", "pantry-next", "查看食谱 →"));
+      button.addEventListener("click", () => chooseRecipe(match.id, true));
+      results.append(button);
+    }
+    if (!matches.length) results.append(make("p", "pantry-result-empty", "没有找到可匹配的社区食谱。"));
+  } catch (error) {
+    results.replaceChildren(make("p", "pantry-result-empty", "匹配失败：" + error.message));
+  }
+}
+
 async function initializeMcp() {
   if (provider && provider.mode === "wasm") {
     byId("mcp-status").textContent = "离线演示";
@@ -308,6 +344,7 @@ async function lookupNutrition() {
 }
 
 async function start() {
+  byId("pantry-form").addEventListener("submit", matchPantry);
   byId("recipe-search").addEventListener("input", (event) => { state.query = event.target.value; renderCards(); });
   document.querySelectorAll(".filter").forEach((button) => button.addEventListener("click", () => {
     state.filter = button.dataset.filter;

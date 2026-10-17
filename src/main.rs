@@ -1,6 +1,6 @@
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
-use how_to_mcd::{mcp, recipes, web};
+use how_to_mcd::{mcp, pantry, recipes, web};
 
 #[derive(Debug, Parser)]
 #[command(name = "how-to-mcd", version, about = "麦麦灵感，家里开做！Rust MCP & community cooking recipes")]
@@ -21,6 +21,11 @@ enum Command {
     },
     /// Validate the complete recipe collection
     Validate,
+    /// Suggest home recipes based on ingredients currently in the kitchen
+    Suggest {
+        #[arg(long)]
+        ingredients: String,
+    },
     /// Start the browser-based kitchen workbench (loopback only by default)
     Serve {
         #[arg(long, default_value = "127.0.0.1")]
@@ -65,6 +70,13 @@ async fn main() -> Result<()> {
                 bail!("servings must be between 1 and 100");
             }
             println!("{}", recipe.render(servings));
+        }
+        Command::Suggest { ingredients } => {
+            for entry in pantry::suggest(&ingredients)? {
+                println!("{} — {}% 已具备 {}/{} 项；还需：{}",
+                    entry.name, entry.score_percent, entry.matched_count,
+                    entry.total_count, entry.missing.join("、"));
+            }
         }
         Command::Validate => {
             let recipes = recipes::all()?;

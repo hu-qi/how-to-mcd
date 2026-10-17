@@ -17,6 +17,7 @@ cargo run -- recipes
 cargo run -- show chicken-burger --servings 4
 cargo run -- show crispy-fries
 cargo run -- show chicken-nuggets
+cargo run -- suggest --ingredients "鸡腿肉、面包、生菜"
 cargo test
 cargo run -- validate
 ```
@@ -35,6 +36,7 @@ cargo run -- serve
 - **食谱探索**：搜索名称、食材和厨具，按空气炸锅、平底锅、烤箱筛选。
 - **Rust 精准换算**：选择菜谱后按人数（1–20）从后端重新获取食材用量，非浏览器臆测。
 - **厨房工作台**：勾选备料、复制采购清单、查看过敏原和安全提示。
+- **冰箱食材推荐**：输入“鸡腿肉、面包、生菜”，Rust 计算食材匹配率、缺料清单和推荐优先级；CLI、本地 Web 与 WASM 共用相同的匹配规则。
 - **逐步烹饪**：全屏聚焦单步做法，带 5 / 10 / 15 分钟辅助计时器。
 - **真实 MCP 桥接**：仅在服务端配置 `MCD_MCP_TOKEN` 后，界面提供只读官方营养查询。Token 从不发往浏览器。
 - **本地网络安全**：服务仅允许绑定回环地址（默认 `127.0.0.1`），阻止无认证的远程客户端使用私人 MCP Token。
