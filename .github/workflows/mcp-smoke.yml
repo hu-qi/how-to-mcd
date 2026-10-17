@@ -1,5 +1,5 @@
 name: MCP Smoke Test
-# First-party server currently negotiates 2025-03-26; Rust client pins this protocol.
+# Probe the Rust 2025-03-26 Streamable HTTP/JSON-RPC client against live official MCP.
 
 on:
   workflow_dispatch:
