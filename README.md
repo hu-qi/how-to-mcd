@@ -50,6 +50,31 @@ curl -s http://127.0.0.1:3000/api/mcp/status
 
 若要查看真正的麦当劳官方营养数据，在启动 Rust 服务器的同一终端安全设置环境变量，随后在页面中点击「查询官方营养数据」。与官方 MCP 的联调是否成功，请以运行结果为准，不能将离线 API 测试当作真实接口验证。
 
+## 🌐 免费在线预览：Rust WebAssembly
+
+为了让不安装 Rust 的开发者也能体验食谱，项目提供**纯静态 Rust/WASM 演示**，与本地服务共享**同一份 `src/recipes.rs`** 源代码。
+
+- 在本地启动 `cargo run -- serve`：浏览器通过 Rust HTTP API 读取菜谱并换算人数，可以在本机已配置 Token 的情况下访问只读官方 MCP。
+- 在 GitHub Pages 打开：浏览器加载 Rust/WASM 引擎，直接运行食谱校验、查询和人数换算；**不要求 Rust 安装，不依赖 Python，也不发送或嵌入任何 MCP Token**。
+- 公开演示**不会声称调用了实时官方 MCP**；真实餐品营养查询需在本地启动 Rust 服务并安全设置环境变量。
+
+### 本地构建 WASM
+
+```sh
+rustup target add wasm32-unknown-unknown
+cargo install wasm-pack --locked
+wasm-pack build crates/howtomcd-wasm --target web --release --out-dir ../../site/pkg --no-opt
+mkdir -p site/assets
+cp web/index.html site/index.html
+cp web/app.js site/assets/app.js
+cp web/app.css site/assets/app.css
+# 使用任意静态 Web 服务器从 site/ 提供文件；不要直接 file:// 打开。
+```
+
+GitHub Actions 的 [Rust WASM Demo and Pages](.github/workflows/wasm-pages.yml) 会自动构建 WASM、通过 Node.js 执行真实 WASM 份量换算测试，并上传可下载的静态演示产物。
+
+**首次启用 GitHub Pages：** 进入仓库 Settings → Pages，将 Source 设为 **GitHub Actions**，然后在 Actions 中手动运行一次 `Rust WASM Demo and Pages`，通过后应可访问 `https://hu-qi.github.io/how-to-mcd/`。若需要合并至 main 后自动部署，可额外设置仓库 Actions Variable `PAGES_ENABLED=true`。仓库未开启 Pages 时不能将预计网址当成已上线服务。
+
 ## 🔗 真实 McDonald's China MCP
 
 官方文档：https://open.mcd.cn/mcp/doc
