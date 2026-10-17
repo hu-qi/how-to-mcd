@@ -1,3 +1,4 @@
-//! Community-created recipes, kitchen validation and a read-only MCP adapter.
+//! Community recipes, a safe read-only MCP adapter, and a Rust web workbench.
 pub mod mcp;
 pub mod recipes;
+pub mod web;

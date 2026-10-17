@@ -1,6 +1,6 @@
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
-use how_to_mcd::{mcp, recipes};
+use how_to_mcd::{mcp, recipes, web};
 
 #[derive(Debug, Parser)]
 #[command(name = "how-to-mcd", version, about = "麦麦灵感，家里开做！Rust MCP & community cooking recipes")]
@@ -21,6 +21,13 @@ enum Command {
     },
     /// Validate the complete recipe collection
     Validate,
+    /// Start the browser-based kitchen workbench (loopback only by default)
+    Serve {
+        #[arg(long, default_value = "127.0.0.1")]
+        host: String,
+        #[arg(long, default_value_t = 3000)]
+        port: u16,
+    },
     /// Read-only McDonald's China MCP operations (requires MCD_MCP_TOKEN)
     Mcp {
         #[command(subcommand)]
@@ -63,6 +70,7 @@ async fn main() -> Result<()> {
             let recipes = recipes::all()?;
             println!("Validated {} community recipes.", recipes.len());
         }
+        Command::Serve { host, port } => web::serve(&host, port).await?,
         Command::Mcp { command } => {
             // Never log the token, auth headers, or raw network error details.
             let token = std::env::var("MCD_MCP_TOKEN")
