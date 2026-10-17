@@ -46,7 +46,7 @@ fn matches(item: &Ingredient, pantry: &[String]) -> bool {
     let alternatives = aliases(&item.name);
     pantry.iter().any(|token| {
         if token.chars().count() < 2 {
-            return false;
+            return canonical == *token;
         }
         canonical == *token
             || canonical.contains(token)
