@@ -2,6 +2,10 @@ name: MCP Smoke Test
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/mcp-smoke.yml
 
 permissions:
   contents: read
@@ -22,11 +26,22 @@ jobs:
             echo "::error::Configure Actions repository secret MCD_MCP_TOKEN first"
             exit 1
           fi
-      - name: Discover MCP tools (read-only)
+      - name: Discover supported tools over authenticated MCP
         env:
           MCD_MCP_TOKEN: ${{ secrets.MCD_MCP_TOKEN }}
-        run: cargo run -- mcp tools
-      - name: Query nutrition (read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --quiet -- mcp tools > "$RUNNER_TEMP/mcp-tools.json"
+          jq -e '.tools | index("list-nutrition-foods") != null' "$RUNNER_TEMP/mcp-tools.json" >/dev/null
+          jq -e '.tools | index("query-meals") != null' "$RUNNER_TEMP/mcp-tools.json" >/dev/null
+          echo "Remote MCP initialization and public tool discovery passed."
+      - name: Query official nutrition over authenticated MCP
         env:
           MCD_MCP_TOKEN: ${{ secrets.MCD_MCP_TOKEN }}
-        run: cargo run -- mcp nutrition
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo run --quiet -- mcp nutrition > "$RUNNER_TEMP/mcp-nutrition.json"
+          jq -e '(.isError // false) == false and (.content | type == "array" and length > 0)' "$RUNNER_TEMP/mcp-nutrition.json" >/dev/null
+          echo "Official nutrition tool returned content successfully."
