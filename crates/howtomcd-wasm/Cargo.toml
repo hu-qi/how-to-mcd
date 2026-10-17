@@ -1,0 +1,15 @@
+[package]
+name = "howtomcd-wasm"
+version = "0.2.0"
+edition = "2021"
+license = "MIT"
+description = "Browser-side Rust recipe engine for the HowToMCD public demo"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+wasm-bindgen = "0.2"

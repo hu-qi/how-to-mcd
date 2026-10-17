@@ -24,6 +24,30 @@ async function api(path) {
   return response.json();
 }
 
+// Native workbench uses the local Rust API. Public Pages preview loads
+// identical Rust recipe logic compiled as WebAssembly, never a mock response.
+let provider = null;
+
+async function chooseProvider() {
+  try {
+    await api("/api/health");
+    return {
+      mode: "native",
+      list: () => api("/api/recipes"),
+      detail: (id, servings) => api(`/api/recipes/${encodeURIComponent(id)}?servings=${servings}`),
+    };
+  } catch (_) {
+    const url = new URL("pkg/howtomcd_wasm.js", document.baseURI);
+    const wasm = await import(url.href);
+    await wasm.default();
+    return {
+      mode: "wasm",
+      list: async () => JSON.parse(wasm.recipes_json()),
+      detail: async (id, servings) => JSON.parse(wasm.recipe_json(id, servings)),
+    };
+  }
+}
+
 function make(tag, className, text) {
   const element = document.createElement(tag);
   if (className) element.className = className;
@@ -128,7 +152,7 @@ async function chooseRecipe(id, scroll = false) {
   const request = ++state.requestId;
   const servings = state.selected && state.selected.recipe.id === id ? state.servings : recipe.servings;
   try {
-    const view = await api(`/api/recipes/${encodeURIComponent(id)}?servings=${servings}`);
+    const view = await provider.detail(id, servings);
     if (request !== state.requestId) return;
     const changed = !state.selected || state.selected.recipe.id !== id;
     state.selected = view;
@@ -245,6 +269,12 @@ function nextStep(direction) {
 }
 
 async function initializeMcp() {
+  if (provider && provider.mode === "wasm") {
+    byId("mcp-status").textContent = "离线演示";
+    byId("mcp-lookup").disabled = true;
+    showMessage("在线演示由 Rust/WASM 离线运行；如需真实 MCP 查询，请本地运行 Rust 服务并配置 Token。");
+    return;
+  }
   try {
     const result = await api("/api/mcp/status");
     const badge = byId("mcp-status");
@@ -299,9 +329,11 @@ async function start() {
   byId("timer-toggle").addEventListener("click", toggleTimer);
   byId("mcp-lookup").addEventListener("click", lookupNutrition);
 
-  initializeMcp();
   try {
-    state.recipes = await api("/api/recipes");
+    provider = await chooseProvider();
+    byId("rust-mode").textContent = provider.mode === "wasm" ? "RUST / WEBASSEMBLY" : "LOCAL RUST API";
+    initializeMcp();
+    state.recipes = await provider.list();
     byId("recipe-count").textContent = String(state.recipes.length);
     renderCards();
     if (state.recipes.length) await chooseRecipe(state.recipes[0].id, false);
