@@ -73,9 +73,9 @@ cp web/app.css site/assets/app.css
 # 使用任意静态 Web 服务器从 site/ 提供文件；不要直接 file:// 打开。
 ```
 
-GitHub Actions 的 [Rust WASM Demo and Pages](.github/workflows/wasm-pages.yml) 会自动构建 WASM、通过 Node.js 执行真实 WASM 份量换算测试，并上传可下载的静态演示产物。
+GitHub Actions 的 [Rust WASM Demo and Pages](.github/workflows/wasm-pages.yml) 会自动构建 WASM、通过 Node.js 执行真实 WASM 份量换算测试，并上传可下载的静态演示产物；在 GitHub Pages 启用 Actions 发布源后，每次 main 更新也会自动尝试部署。
 
-**首次启用 GitHub Pages：** 进入仓库 Settings → Pages，将 Source 设为 **GitHub Actions**，然后在 Actions 中手动运行一次 `Rust WASM Demo and Pages`，通过后应可访问 `https://hu-qi.github.io/how-to-mcd/`。若需要合并至 main 后自动部署，可额外设置仓库 Actions Variable `PAGES_ENABLED=true`。仓库未开启 Pages 时不能将预计网址当成已上线服务。
+**首次启用 GitHub Pages：** 进入仓库 Settings → Pages，将 Source 设为 **GitHub Actions**。后续合并至 main 将自动部署到 `https://hu-qi.github.io/how-to-mcd/`；在首次发布成功前，该链接仅是预计地址，不代表服务已上线。
 
 ## 🔗 真实 McDonald's China MCP
 
@@ -124,7 +124,7 @@ CONTEST_DECLARATION.md # 官方参赛声明
 - **Name：** `MCD_MCP_TOKEN`
 - **Value：** 麦当劳开放平台颁发的有效 Token（建议轮换聊天中曾明文分享的旧 Token）
 
-普通 `Rust CI` 不使用 Secret，可安全运行于 PR；`MCP Smoke Test` 仅支持手动触发，执行真实 `tools/list` 和 `list-nutrition-foods`。任何真实 MCP 测试必须以 Action 成功结果为准，仓库提供配置不等于已经通过。
+普通 `Rust CI` 不使用 Secret，可安全运行于 PR；`MCP Smoke Test` 可手动触发，并仅在 main 上变更其工作流文件时自动执行一次，真实访问 `tools/list` 和 `list-nutrition-foods`。不会在 Fork PR 中运行 Secret；正式联调结论以 Action 成功结果为准。
 
 ## 🌱 社区共创
 
