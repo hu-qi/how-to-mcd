@@ -64,7 +64,7 @@ jobs:
           retention-days: 14
 
   deploy:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.PAGES_ENABLED == 'true')
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: wasm
     runs-on: ubuntu-latest
     permissions:
