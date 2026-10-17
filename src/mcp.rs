@@ -57,7 +57,11 @@ pub async fn call(token: &str, tool: &str, arguments: Value) -> Result<Value> {
         .call_tool(CallToolRequestParams::new(tool.to_owned()).with_arguments(map))
         .await?;
     let _ = client.cancel().await;
-    Ok(serde_json::to_value(result)?)
+    let response = serde_json::to_value(result)?;
+    if response.get("isError").and_then(Value::as_bool) == Some(true) {
+        bail!("The remote MCP tool reported an error");
+    }
+    Ok(response)
 }
 
 #[cfg(test)]
@@ -76,6 +80,12 @@ mod tests {
     fn only_json_objects() {
         assert!(validate_call("list-nutrition-foods", &json!({})).is_ok());
         assert!(validate_call("query-meals", &json!([1, 2])).is_err());
+    }
+
+    #[test]
+    fn mcp_tool_error_flag_is_visible() {
+        let failed = json!({"isError": true, "content": [{"type": "text", "text": "tool unavailable"}]});
+        assert_eq!(failed.get("isError").and_then(Value::as_bool), Some(true));
     }
 
     #[test]
