@@ -71,6 +71,13 @@
             <button class="filter" type="button" data-filter="烤箱" aria-pressed="false">烤箱</button>
           </div>
         </div>
+        <form class="pantry-panel" id="pantry-form" aria-label="冰箱食材智能匹配">
+          <div class="pantry-icon" aria-hidden="true">🧺</div>
+          <div class="pantry-copy"><strong>冰箱里有什么，就做什么。</strong><span>输入现有食材，Rust 会计算匹配度并列出缺料清单。</span></div>
+          <label class="pantry-field"><span class="sr-only">已有食材</span><input id="pantry-input" type="text" maxlength="160" placeholder="例如：鸡腿肉、面包、生菜" autocomplete="off"></label>
+          <button type="submit" class="pantry-submit">智能匹配 ↗</button>
+        </form>
+        <div id="pantry-results" class="pantry-results" aria-live="polite" hidden></div>
         <div id="recipe-grid" class="recipe-grid" aria-live="polite">
           <div class="loading-card">正在加载 Rust 食谱服务…</div>
         </div>
