@@ -109,9 +109,9 @@ impl Session {
         let builder = self.client.post(ENDPOINT)
             .bearer_auth(&self.token)
             .header(header::ACCEPT, "application/json, text/event-stream")
-            .header("MCP-Protocol-Version", &self.version);
+            .header("MCP-Protocol-Version", self.version.as_str());
         if let Some(id) = &self.session_id {
-            builder.header("Mcp-Session-Id", id)
+            builder.header("Mcp-Session-Id", id.as_str())
         } else {
             builder
         }
