@@ -13,7 +13,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::{mcp, recipes::{self, Ingredient, Recipe}};
+use crate::{mcp, pantry, recipes::{self, Ingredient, Recipe}};
 
 type ApiError = (StatusCode, &'static str);
 type ApiResult<T> = std::result::Result<Json<T>, ApiError>;
@@ -21,6 +21,11 @@ type ApiResult<T> = std::result::Result<Json<T>, ApiError>;
 #[derive(Debug, Deserialize)]
 struct ServingsQuery {
     servings: Option<u32>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PantryQuery {
+    ingredients: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -42,6 +47,7 @@ fn app() -> Router {
         .route("/api/health", get(health))
         .route("/api/recipes", get(list_recipes))
         .route("/api/recipes/{id}", get(recipe_detail))
+        .route("/api/suggestions", get(suggestions))
         .route("/api/mcp/status", get(mcp_status))
         .route("/api/mcp/nutrition", get(nutrition))
 }
@@ -75,6 +81,12 @@ async fn recipe_detail(
     }).collect();
 
     Ok(Json(RecipeView { recipe, requested_servings: servings, ingredients }))
+}
+
+async fn suggestions(Query(query): Query<PantryQuery>) -> ApiResult<Vec<pantry::Suggestion>> {
+    pantry::suggest(&query.ingredients)
+        .map(Json)
+        .map_err(|_| (StatusCode::BAD_REQUEST, "Provide 1 to 30 ingredients (maximum 512 bytes)"))
 }
 
 async fn mcp_status() -> Json<Value> {
@@ -151,6 +163,15 @@ mod tests {
         assert_eq!(request("/api/recipes/chicken-burger?servings=0").await.0, StatusCode::BAD_REQUEST);
         assert_eq!(request("/api/recipes/chicken-burger?servings=101").await.0, StatusCode::BAD_REQUEST);
         assert_eq!(request("/api/recipes/chicken-burger?servings=oops").await.0, StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn suggests_recipes_from_pantry() {
+        let (status, body) = request("/api/suggestions?ingredients=%E9%B8%A1%E8%85%BF%2C%E9%9D%A2%E5%8C%85%2C%E7%94%9F%E8%8F%9C").await;
+        assert_eq!(status, StatusCode::OK);
+        let result: Value = serde_json::from_str(&body).unwrap();
+        assert_eq!(result[0]["id"], "chicken-burger");
+        assert!(result[0]["score_percent"].as_u64().unwrap() > 0);
     }
 
     #[tokio::test]
