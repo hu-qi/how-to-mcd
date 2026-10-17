@@ -3,6 +3,9 @@
 #[path = "../../../src/recipes.rs"]
 mod recipes;
 
+#[path = "../../../src/pantry.rs"]
+mod pantry;
+
 use wasm_bindgen::prelude::*;
 use serde_json::json;
 
@@ -40,4 +43,12 @@ pub fn recipe_json(id: &str, servings: u32) -> Result<String, JsValue> {
         "requested_servings": servings,
         "ingredients": ingredients
     })).map_err(|_| js_error("Recipe serialization failed"))
+}
+
+/// Rank community recipes by available kitchen ingredients using Rust.
+#[wasm_bindgen]
+pub fn suggestions_json(ingredients: &str) -> Result<String, JsValue> {
+    let results = pantry::suggest(ingredients)
+        .map_err(|_| js_error("Invalid pantry ingredient list"))?;
+    serde_json::to_string(&results).map_err(|_| js_error("Suggestion serialization failed"))
 }
