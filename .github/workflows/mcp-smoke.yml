@@ -38,9 +38,10 @@ jobs:
             --header "Authorization: Bearer $MCD_MCP_TOKEN" \
             --header 'Content-Type: application/json' \
             --header 'Accept: application/json, text/event-stream' \
-            --data "$payload" --output /dev/null \
+            --data "$payload" --output "$RUNNER_TEMP/mcp-init.json" \
             --write-out 'HTTP %{http_code}; Content-Type %{content_type}'); then
             echo "Remote MCP initialization probe: $status"
+            jq -c '{jsonRpc: .jsonrpc, negotiatedProtocol: .result.protocolVersion, serverName: .result.serverInfo.name, rpcErrorCode: .error.code, responseKind: (if .result then "result" elif .error then "rpc_error" else "unknown" end)}' "$RUNNER_TEMP/mcp-init.json" || echo "::warning::Initialization response was not a plain JSON object."
           else
             echo "::warning::Remote MCP initialize request could not complete at the HTTP transport layer."
           fi
