@@ -1,4 +1,5 @@
 name: MCP Smoke Test
+# First-party server currently negotiates 2025-03-26; Rust client pins this protocol.
 
 on:
   workflow_dispatch:
