@@ -34,7 +34,7 @@ cargo run -- mcp nutrition
 cargo run -- mcp call query-meals --args '{"storeCode":"...","beCode":"..."}'
 ```
 
-This repository provides a hand-triggered GitHub Action (`MCP Smoke Test`) that runs a real authenticated tools/list and nutrition invocation when the repository secret `MCD_MCP_TOKEN` is set. Pull-request CI intentionally has no access to secrets and tests the Rust application offline. The smoke test remains **unverified** until that Action succeeds with the user's secret.
+This repository provides a manually runnable GitHub Action (`MCP Smoke Test`) that also runs when its workflow file is changed on main. It performs a real authenticated tools/list and nutrition invocation when the repository secret `MCD_MCP_TOKEN` is configured, without printing the full response to public logs. Pull-request CI intentionally has no access to secrets and tests the Rust application offline. The smoke test remains **unverified** until that Action succeeds with the user's secret.
 
 ## Authorization and risk controls
 
