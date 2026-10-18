@@ -23,7 +23,7 @@ pub fn official_data(mcp_result: &Value) -> Result<Value> {
     bail!("Official MCP response was not structured JSON");
 }
 
-pub fn validate_order(args: &Value) -> Result<()> {
+pub fn validate_selection(args: &Value) -> Result<()> {
     let object = args.as_object().context("Order must be a JSON object")?;
     if serde_json::to_vec(args)?.len() > 8192 { bail!("Order exceeds size limit"); }
     for field in ["storeCode", "beCode"] {
@@ -33,14 +33,6 @@ pub fn validate_order(args: &Value) -> Result<()> {
     let be_type = object.get("beType").and_then(Value::as_u64)
         .context("Missing beType")?;
     if be_type != 1 && be_type != 2 { bail!("Only pickup or delivery are supported"); }
-    if be_type == 1 && object.get("takeWayCode").and_then(Value::as_str)
-        .filter(|v| !v.is_empty() && v.len() <= 64).is_none() {
-        bail!("Pickup requires a takeWayCode from a fresh official quote");
-    }
-    if be_type == 2 && object.get("addressId").and_then(Value::as_str)
-        .filter(|v| !v.is_empty() && v.len() <= 64).is_none() {
-        bail!("Delivery requires a chosen official address");
-    }
     let items = object.get("items").and_then(Value::as_array)
         .filter(|v| !v.is_empty() && v.len() <= 20)
         .context("Select 1–20 order lines")?;
@@ -54,10 +46,25 @@ pub fn validate_order(args: &Value) -> Result<()> {
     Ok(())
 }
 
+pub fn validate_order(args: &Value) -> Result<()> {
+    validate_selection(args)?;
+    let object = args.as_object().context("Order must be an object")?;
+    let be_type = object["beType"].as_u64().unwrap_or(0);
+    if be_type == 1 && object.get("takeWayCode").and_then(Value::as_str)
+        .filter(|v| !v.is_empty() && v.len() <= 64).is_none() {
+        bail!("Pickup requires a takeWayCode from a fresh official quote");
+    }
+    if be_type == 2 && object.get("addressId").and_then(Value::as_str)
+        .filter(|v| !v.is_empty() && v.len() <= 64).is_none() {
+        bail!("Delivery requires a chosen official address");
+    }
+    Ok(())
+}
+
 /// Whitelist the fields accepted by calculate-price, never use full order args
 /// because addressId/takeWayCode are create-order-only fields.
 pub fn quote_args(order: &Value) -> Result<Value> {
-    validate_order(order)?;
+    validate_selection(order)?;
     let mut result = Map::new();
     for key in ["storeCode", "beCode", "beType", "reservationDate", "gmServiceCode", "items"] {
         if let Some(value) = order.get(key) { result.insert(key.to_owned(), value.clone()); }
