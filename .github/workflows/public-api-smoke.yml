@@ -8,6 +8,9 @@ on:
       - vercel.json
       - src/web.rs
       - api/public_api.rs
+      - scripts/public-api-smoke.mjs
+      - web/shop.js
+      - .github/workflows/wasm-pages.yml
 permissions:
   contents: read
 jobs:
@@ -33,3 +36,21 @@ jobs:
           echo "POST /api/mcp/checkout without consent -> HTTP $code (expect 428)"
           test "$code" = 428
           echo "Public Rust gateway basic safety checks passed; no real orders created."
+
+  official-menu-readonly:
+    if: github.ref == 'refs/heads/main'
+    needs: gateway
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read real official store/menu through hosted Rust bridge
+        env:
+          HOWTOMCD_PUBLIC_API_URL: https://how-to-mcd-api.vercel.app
+          MCD_MCP_TOKEN: ${{ secrets.MCD_MCP_TOKEN }}
+        run: |
+          if [ -z "$MCD_MCP_TOKEN" ]; then
+            echo "::error::MCD_MCP_TOKEN repository secret is not configured"
+            exit 1
+          fi
+          node scripts/public-api-smoke.mjs
