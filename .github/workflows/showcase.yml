@@ -57,6 +57,12 @@ jobs:
           npm init -y >/dev/null
           npm install --no-audit --no-fund playwright@1.56.1 http-server@14.1.1
           npx playwright install --with-deps chromium
+      - name: Install FFmpeg for portable MP4 recording export
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ffmpeg -version | head -n 1
       - name: Start HTTP server for the actual candidate WASM site
         shell: bash
         run: |
