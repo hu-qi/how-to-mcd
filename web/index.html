@@ -152,7 +152,7 @@
         <div class="panel shop-panel">
           <span class="mini-label">LIVE OFFICIAL MENU / PERSONAL SESSION</span>
           <h3>连接个人 MCP Token · 选择真实门店点餐</h3>
-          <p class="shop-note">你的 Token 仅在当前页面内存中保留，不保存到浏览器存储、仓库或 GitHub Actions。公开 Pages 会尝试直接访问官方 MCP；若浏览器 CORS 不允许，请本地运行 <code>cargo run -- serve</code>，使用 Rust 安全桥接完成点餐。</p>
+          <p class="shop-note">你的个人 Token 仅在当前页面内存中保留，提交查询时经 HTTPS 传递到独立的 Rust MCP 网关；不会写入仓库、浏览器存储或 GitHub Actions。网关不使用站长的 Token，也不记录 Token。若网关不可用，点餐功能将停止；也可以本机执行 <code>cargo run -- serve</code> 使用本地服务。下单前会重新查询价格，必须由你明确确认。</p>
 
           <form class="shop-connection" id="shop-connect">
             <label class="shop-field">个人麦当劳 MCP Token
