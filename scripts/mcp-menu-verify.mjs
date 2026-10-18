@@ -15,6 +15,17 @@ function result(file) {
       throw Error("Official MCP business response was not successful");
     return parsed.data || parsed;
   }
+  // Only emit a redacted format preview of the public-store lookup, never the
+  // bearer credential, phone numbers or the full account-scoped response.
+  const first = (mcp.content || []).find(x => x.type === "text" && typeof x.text === "string")?.text || "";
+  const masked = first.slice(0, 480)
+    .replace(/[A-Za-z0-9_+.-]+@[A-Za-z0-9.-]+/g, "[EMAIL]")
+    .replace(/[0-9]/g, "X")
+    .replace(/[A-Za-z0-9_-]{18,}/g, "[LONG_ID]");
+  console.error("Official MCP store content format (redacted):", JSON.stringify({
+    blockCount: mcp.content?.length || 0, length: first.length,
+    preview: masked, newlineCount: (first.match(/\\n/g) || []).length
+  }));
   throw Error("No structured JSON result was provided by official MCP (ignored non-JSON guidance)");
 }
 export function selectedStore(data) {
