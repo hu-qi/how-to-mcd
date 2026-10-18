@@ -62,17 +62,38 @@ function result(file) {
   }));
   throw Error("No structured JSON result was provided by official MCP (ignored non-JSON guidance)");
 }
+function findStoreArrays(data, depth = 0) {
+  if (depth > 4 || data == null || typeof data !== "object") return [];
+  if (Array.isArray(data)) return [data, ...data.flatMap(v => findStoreArrays(v, depth + 1))];
+  const priority = ["stores", "storeList", "list", "data", "records", "nearbyStores", "storeInfoList"];
+  const keys = [...priority.filter(k => Object.hasOwn(data, k)), ...Object.keys(data).filter(k => !priority.includes(k))];
+  return keys.flatMap(k => findStoreArrays(data[k], depth + 1));
+}
 export function selectedStore(data) {
-  const stores = Array.isArray(data) ? data : (data?.stores || data?.storeList || []);
-  const first = stores.find(v => v.storeCode && v.beCode && v.businessStatus !== false);
-  if (!first) throw Error("No official available store with storeCode and beCode");
-  return { storeCode: first.storeCode, beCode: first.beCode, orderType: 1, beType: 1 };
+  const arrays = findStoreArrays(data);
+  const entries = arrays.flat();
+  const first = entries.find(v => v && typeof v === "object" &&
+    (v.storeCode || v.storeNo || v.code) && v.businessStatus !== false);
+  if (!first) {
+    // Log shape only. Store names, addresses, account IDs are never printed.
+    const topKeys = data && typeof data === "object" && !Array.isArray(data) ? Object.keys(data).slice(0, 15) : [];
+    console.error("Official store shape:", JSON.stringify({topKeys, arrayLengths: arrays.map(a => a.length).slice(0, 10),
+      entryKeys: entries.filter(v => v && typeof v === "object").slice(0, 2).map(v => Object.keys(v).slice(0, 15))}));
+    throw Error("No official available store identifier found");
+  }
+  return { storeCode: String(first.storeCode || first.storeNo || first.code),
+    beCode: String(first.beCode || first.businessEntityCode || ""),
+    orderType: 1, beType: 1 };
 }
 export function menuCounts(data) {
   const goods = data?.meals;
   const products = goods && typeof goods === "object" && !Array.isArray(goods)
     ? Object.values(goods).filter(v => typeof v?.name === "string") : [];
-  if (!products.length) throw Error("Official store menu did not return named products");
+  if (!products.length) {
+    console.error("Official menu shape:", JSON.stringify({ topKeys: Object.keys(data || {}).slice(0, 20),
+      mealsType: Array.isArray(goods) ? "array" : typeof goods }));
+    throw Error("Official store menu did not return named products");
+  }
   return { productCount: products.length, categoryCount: (data.categories || []).length };
 }
 
