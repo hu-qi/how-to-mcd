@@ -11,7 +11,14 @@ pub fn official_data(mcp_result: &Value) -> Result<Value> {
         .context("MCP reply had no content")?;
     for block in blocks {
         if let Some(text) = block.get("text").and_then(Value::as_str) {
-            if let Ok(payload) = serde_json::from_str::<Value>(text) {
+            let payload = serde_json::from_str::<Value>(text).or_else(|_| {
+                // Official MCP may prepend natural-language field guidance
+                // before its JSON payload. Only accept a valid success envelope.
+                let start = text.find("{\\\"success\\\"").ok_or_else(|| anyhow::anyhow!("Missing official JSON envelope"))?;
+                let end = text.rfind('}').ok_or_else(|| anyhow::anyhow!("Missing JSON closing bracket"))?;
+                serde_json::from_str::<Value>(&text[start..=end]).map_err(Into::into)
+            });
+            if let Ok(payload) = payload {
                 if payload.get("success").and_then(Value::as_bool) == Some(false)
                     || (payload.get("code").is_some() && payload["code"] != 200) {
                     bail!("Official McDonald's business API rejected the request");
