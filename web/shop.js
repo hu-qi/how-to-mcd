@@ -46,12 +46,40 @@
       return u.protocol === "https:" && (u.hostname === "mcd.cn" || u.hostname.endsWith(".mcd.cn")) ? u.href : null;
     } catch { return null; }
   };
+  // MCP can put explanatory prose and structured JSON in the same text block.
+  const parseBusinessText = text => {
+    for (let i = 0; i < text.length; i++) {
+      if (text[i] !== "{") continue;
+      let depth = 0, inString = false, escape = false;
+      for (let j = i; j < text.length; j++) {
+        const ch = text[j];
+        if (inString) {
+          if (escape) escape = false;
+          else if (ch === "\\") escape = true;
+          else if (ch === '"') inString = false;
+        } else if (ch === '"') inString = true;
+        else if (ch === "{") depth++;
+        else if (ch === "}") {
+          depth--;
+          if (depth === 0) {
+            try {
+              const parsed = JSON.parse(text.slice(i, j + 1));
+              if (parsed && typeof parsed === "object" &&
+                ("success" in parsed || "data" in parsed)) return parsed;
+            } catch (_) { /* guidance can contain non-JSON braces */ }
+            i = j; break;
+          }
+        }
+      }
+    }
+    return null;
+  };
   const officialData = response => {
     if (response?.isError) throw Error("官方 MCP 工具返回错误");
     for (const block of response?.content || []) {
       if (block.type !== "text") continue;
-      let content;
-      try { content = JSON.parse(block.text); } catch { continue; }
+      const content = parseBusinessText(block.text);
+      if (!content) continue;
       if (content.success === false || (content.code != null && content.code !== 200)) {
         throw Error("官方麦当劳服务拒绝了该请求，请检查账号、门店和点餐参数");
       }
