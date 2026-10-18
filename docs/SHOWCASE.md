@@ -23,7 +23,7 @@
 1. **麦当劳中国官方 MCP 已真实联调通过：** [MCP Smoke Test](https://github.com/hu-qi/how-to-mcd/actions/runs/39037176750)；Rust Streamable HTTP / JSON-RPC 客户端成功发现工具并查询官方营养数据。只允许三个只读工具，不包含下单或支付。
 2. **Rust 原生构建与 HTTP API 测试：** [Rust CI](https://github.com/hu-qi/how-to-mcd/actions/runs/39037176719)。
 3. **Rust/WASM 构建与实际执行测试、GitHub Pages 发布：** [Rust WASM Demo and Pages](https://github.com/hu-qi/how-to-mcd/actions/runs/39037176740)。
-4. **浏览器桌面和移动端真实演示：** [Capture Contest Demo Evidence 工作流](../.github/workflows/showcase.yml)。此工作流从线上 GitHub Pages 页面真实操作食材匹配、份量换算、备料、分步烹饪与计时器，并将浏览器截图、无声 MP4 录屏、自动化验证报告上传为 GitHub Actions Artifact。**只有工作流执行成功后，其媒体才是验证过的实录；不要将未执行的截图或视频视为已完成。**
+4. **浏览器桌面和移动端真实演示：** [Capture Contest Demo Evidence 工作流](../.github/workflows/showcase.yml)。此工作流先真实构建 Rust/WASM 静态站点，并用 Chromium 在 HTTP 服务中操作食材匹配、份量换算、备料、分步烹饪与计时器，并将浏览器截图、无声 MP4 录屏、自动化验证报告上传为 GitHub Actions Artifact。也可以在 Actions 手动运行时勾选 `published_site=true`，直接核验已部署的 GitHub Pages 公网站点。**只有工作流执行成功后，其媒体才是验证过的实录；不要将未执行的截图或视频视为已完成。**
 
 ## 关于官方 MCP 和公开网页的区别
 
