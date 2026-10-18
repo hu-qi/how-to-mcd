@@ -2,6 +2,10 @@ name: Capture Contest Demo Evidence
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - scripts/capture-showcase.mjs
+      - .github/workflows/showcase.yml
   push:
     branches: [main]
     paths:
