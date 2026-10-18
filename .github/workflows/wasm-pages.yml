@@ -60,9 +60,23 @@ jobs:
             exit 1
           fi
           umask 077
-          cargo run --quiet -- mcp nutrition > "$RUNNER_TEMP/private-nutrition-response.json"
-          node scripts/publish-nutrition.mjs "$RUNNER_TEMP/private-nutrition-response.json" site/catalog/nutrition.json
+          success=false
+          for attempt in 1 2 3; do
+            echo "Read-only official nutrition sync attempt $attempt of 3"
+            if cargo run --quiet -- mcp nutrition > "$RUNNER_TEMP/private-nutrition-response.json"; then
+              if node scripts/publish-nutrition.mjs "$RUNNER_TEMP/private-nutrition-response.json" site/catalog/nutrition.json; then
+                success=true
+                break
+              fi
+            fi
+            rm -f "$RUNNER_TEMP/private-nutrition-response.json" site/catalog/nutrition.json
+            if [ "$attempt" -lt 3 ]; then sleep $((attempt * 5)); fi
+          done
           rm -f "$RUNNER_TEMP/private-nutrition-response.json"
+          if [ "$success" != true ]; then
+            echo "::error::Official nutrition sync failed after three attempts. Refusing to publish unverified data."
+            exit 1
+          fi
           test -s site/catalog/nutrition.json
       - name: Execute real Rust/WASM recipe calculations in Node.js
         shell: bash
