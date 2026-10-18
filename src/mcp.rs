@@ -21,10 +21,16 @@ fn client_config() -> ClientConfig {
 }
 
 
-pub const ALLOWED_TOOLS: [&str; 3] = [
+pub const ALLOWED_TOOLS: [&str; 9] = [
     "list-nutrition-foods",
+    "query-nearby-stores",
+    "delivery-query-addresses",
+    "delivery-query-stores",
     "query-meals",
     "query-meal-detail",
+    "calculate-price",
+    "query-order",
+    "query-store-coupons",
 ];
 
 pub fn is_allowed_tool(name: &str) -> bool {
