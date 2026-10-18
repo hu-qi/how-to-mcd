@@ -191,7 +191,8 @@
     notice("连接已断开，个人 Token 已从页面内存清除。");
   }
   function setStore(store) {
-    s.store = store; s.cart.clear(); s.quote = null; s.menu = {};
+    s.store = { ...store, storeCode: store.storeCode || store.storeNo || store.code,
+      beCode: store.beCode || store.businessEntityCode || "" }; s.cart.clear(); s.quote = null; s.menu = {};
     $("shop-quote").hidden = true;
     $("shop-store-name").textContent = store.storeName || store.name || store.storeCode || store.storeNo;
     notice("已选择门店：" + (store.storeName || store.storeCode) + "；可以获取该门店的实时可售菜单。");
