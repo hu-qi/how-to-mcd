@@ -1,0 +1,35 @@
+name: Verify public Rust MCP gateway
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/public-api-smoke.yml
+      - vercel.json
+      - src/web.rs
+      - api/public_api.rs
+permissions:
+  contents: read
+jobs:
+  gateway:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify public production Rust API (no private credentials)
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=https://how-to-mcd-api.vercel.app
+          code=$(curl --silent --show-error --location --max-time 25 --output "$RUNNER_TEMP/health.json" --write-out '%{http_code}' "$BASE/api/health")
+          echo "GET /api/health -> HTTP $code"
+          test "$code" = 200
+          node -e 'const a=require(process.argv[1]); if(a.service!=="how-to-mcd-public-api"||a.server_token_used!==false) process.exit(1)' "$RUNNER_TEMP/health.json"
+          code=$(curl --silent --show-error --max-time 25 --output /dev/null --write-out '%{http_code}' -X OPTIONS "$BASE/api/mcp/bridge" -H 'Origin: https://hu-qi.github.io' -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: content-type,x-howtomcd-client')
+          echo "OPTIONS /api/mcp/bridge -> HTTP $code"
+          test "$code" = 204
+          code=$(curl --silent --show-error --max-time 25 --output /dev/null --write-out '%{http_code}' -X POST "$BASE/api/mcp/bridge" -H 'Origin: https://hu-qi.github.io' -H 'X-HowToMCD-Client: 1' -H 'Content-Type: application/json' --data '{"tool":"list-nutrition-foods","args":{}}')
+          echo "POST /api/mcp/bridge without token -> HTTP $code (expect 401)"
+          test "$code" = 401
+          code=$(curl --silent --show-error --max-time 25 --output /dev/null --write-out '%{http_code}' -X POST "$BASE/api/mcp/checkout" -H 'Origin: https://hu-qi.github.io' -H 'X-HowToMCD-Client: 1' -H 'Content-Type: application/json' --data '{"token":"invalid-test-token","args":{},"confirmed":false,"expected_price_cents":100}')
+          echo "POST /api/mcp/checkout without consent -> HTTP $code (expect 428)"
+          test "$code" = 428
+          echo "Public Rust gateway basic safety checks passed; no real orders created."
