@@ -3,6 +3,23 @@
 use anyhow::{bail, Context, Result};
 use serde_json::{json, Map, Value};
 
+/// Official MCP may prefix a structured business object with natural language
+/// in the same content block. Use serde's JSON stream parser starting at each
+/// object boundary; never log raw tool output or personal address information.
+fn parse_business_text(text: &str) -> Option<Value> {
+    for (index, ch) in text.char_indices() {
+        if ch != '{' { continue; }
+        let mut stream = serde_json::Deserializer::from_str(&text[index..])
+            .into_iter::<Value>();
+        if let Some(Ok(value)) = stream.next() {
+            if value.get("success").is_some() || value.get("data").is_some() {
+                return Some(value);
+            }
+        }
+    }
+    None
+}
+
 pub fn official_data(mcp_result: &Value) -> Result<Value> {
     if mcp_result.get("isError").and_then(Value::as_bool) == Some(true) {
         bail!("The official tool reported an error");
@@ -11,7 +28,7 @@ pub fn official_data(mcp_result: &Value) -> Result<Value> {
         .context("MCP reply had no content")?;
     for block in blocks {
         if let Some(text) = block.get("text").and_then(Value::as_str) {
-            if let Ok(payload) = serde_json::from_str::<Value>(text) {
+            if let Some(payload) = parse_business_text(text) {
                 if payload.get("success").and_then(Value::as_bool) == Some(false)
                     || (payload.get("code").is_some() && payload["code"] != 200) {
                     bail!("Official McDonald's business API rejected the request");
@@ -105,6 +122,13 @@ mod tests {
         let args = quote_args(&sample()).unwrap();
         assert_eq!(args["orderType"], 1);
         assert!(args.get("takeWayCode").is_none());
+    }
+    #[test]
+    fn parses_official_guidance_then_json() {
+        let guidance = "门店代码为 storeCode，使用时不要漏掉。\\n".to_string()
+            + r#"{"success":true,"code":200,"data":{"price":2200}}"#;
+        let response = json!({"content":[{"type":"text","text":guidance}]});
+        assert_eq!(quote_total(&response).unwrap(), 2200);
     }
     #[test]
     fn extracts_verified_business_price() {

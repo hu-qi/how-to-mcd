@@ -2,14 +2,48 @@
 // No public raw MCP response, token, addresses, account data or order details.
 import fs from "node:fs";
 
+// Official MCP sometimes includes plain-language guidance before its JSON
+// response in the SAME text block. Scan for a complete valid business JSON
+// object rather than requiring the entire block to be JSON.
+export function parseBusinessText(text) {
+  const payloads = [];
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] !== "{") continue;
+    let depth = 0, inString = false, escaped = false;
+    for (let j = i; j < text.length; j++) {
+      const ch = text[j];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (ch === "\\") escaped = true;
+        else if (ch === '"') inString = false;
+      } else if (ch === '"') inString = true;
+      else if (ch === "{") depth++;
+      else if (ch === "}") {
+        depth--;
+        if (depth === 0) {
+          try {
+            const obj = JSON.parse(text.slice(i, j + 1));
+            if (obj && typeof obj === "object" && !Array.isArray(obj) &&
+                (Object.hasOwn(obj, "success") || Object.hasOwn(obj, "data"))) {
+              payloads.push(obj);
+            }
+          } catch (_) { /* prose can contain braces */ }
+          i = j;
+          break;
+        }
+      }
+    }
+  }
+  return payloads[0] || null;
+}
+
 function result(file) {
   const mcp = JSON.parse(fs.readFileSync(file, "utf8"));
   if (mcp.isError) throw Error("Official MCP tool reported error");
   for (const item of mcp.content || []) {
     if (item.type !== "text") continue;
-    let parsed;
-    try { parsed = JSON.parse(item.text); }
-    catch (_) { continue; } // MCP may precede structured data with human-readable guidance
+    const parsed = parseBusinessText(item.text);
+    if (!parsed) continue; // Guidance and JSON can share one text block
 
     if (parsed.success === false || (parsed.code != null && parsed.code !== 200))
       throw Error("Official MCP business response was not successful");
