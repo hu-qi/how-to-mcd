@@ -77,6 +77,18 @@ GitHub Actions 的 [Rust WASM Demo and Pages](.github/workflows/wasm-pages.yml) 
 
 **首次启用 GitHub Pages：** 进入仓库 Settings → Pages，将 Source 设为 **GitHub Actions**。后续合并至 main 将自动部署到 `https://hu-qi.github.io/how-to-mcd/`；在首次发布成功前，该链接仅是预计地址，不代表服务已上线。
 
+## 🛒 官方真实营养、门店菜单与点餐（新增）
+
+在线页面增加「官方菜单 · 点餐」板块：https://hu-qi.github.io/how-to-mcd/#official
+
+**真实营养资料库**：生产环境 GitHub Actions 使用受保护的 MCD_MCP_TOKEN 调用官方 list-nutrition-foods，仅将餐品名称与公开营养字段提取到静态目录。公开目录不包含令牌、账户、地址或订单信息。它是官方常见餐品营养信息，不代表全国所有门店此刻均有售。
+
+**实时菜单与下单**：输入自己的个人 Token → 按城市搜索取餐门店，或选择官方账户中的已有外送地址 → 使用 query-meals 获取该店可售餐品与分类 → query-meal-detail 看套餐组成 → 加入选购清单 → calculate-price 获取真正含配送费和优惠的报价 → 核对并确认 → 再次询价确保金额未变化 → create-order 创建真实订单并由用户进入麦当劳官方支付链接。不会自动付款。首期支持到店自取与麦乐送，尚不支持复杂套餐改配、预约与积分兑换。
+
+**公开 Pages 的技术边界**：GitHub Actions Secret 不会出现在 Pages 中，公开网页接受用户个人 Token 后仅在当前页面内存中处理；浏览器尝试直连麦当劳官方 https://mcp.mcd.cn 。如果官方 CORS 限制浏览器请求，会明确提示使用本地可信 Rust Web 服务：在仓库执行 cargo run -- serve，再访问 http://127.0.0.1:3000 ，通过仅监听环回地址的 Rust MCP 桥接使用实时点餐能力。这个功能在无本地服务的静态 Pages 上不能保证每个浏览器都能下单。
+
+**烹饪方法来源**：家庭复刻食谱是社区独立创作，绝非官方商业制作工艺。没有独立编写验证的做法时仅展示官方商品信息，不杜撰所谓“官方烹饪方法”。
+
 ## 🔗 真实 McDonald's China MCP
 
 官方文档：https://open.mcd.cn/mcp/doc
