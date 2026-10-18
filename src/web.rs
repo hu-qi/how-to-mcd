@@ -4,9 +4,11 @@ use std::net::SocketAddr;
 
 use anyhow::{bail, Context, Result};
 use axum::{
+    body::Body,
     extract::{Path, Query},
-    http::{header, StatusCode},
-    response::Html,
+    http::{header, HeaderValue, Method, Request, StatusCode},
+    middleware::{self, Next},
+    response::{Html, IntoResponse, Response},
     routing::{get, post},
     Json, Router,
 };
@@ -56,6 +58,63 @@ fn app() -> Router {
         .route("/api/mcp/bridge", post(mcp_bridge))
         .route("/api/mcp/quote", post(mcp_quote))
         .route("/api/mcp/checkout", post(mcp_checkout))
+}
+
+const TRUSTED_PAGES_ORIGIN: &str = "https://hu-qi.github.io";
+
+/// Public deployment: no server-side MCP Token, no admin endpoints and no
+/// local-only recipe pages. Visitors bring their own request-scoped token.
+pub fn public_api_app() -> Router {
+    Router::new()
+        .route("/api/health", get(public_health))
+        .route("/api/mcp/bridge", post(mcp_bridge).options(cors_preflight))
+        .route("/api/mcp/quote", post(mcp_quote).options(cors_preflight))
+        .route("/api/mcp/checkout", post(mcp_checkout).options(cors_preflight))
+        .layer(axum::extract::DefaultBodyLimit::max(12 * 1024))
+        .layer(middleware::from_fn(public_origin_guard))
+}
+
+async fn public_health() -> Json<Value> {
+    Json(json!({
+        "status": "ok", "service": "how-to-mcd-public-api",
+        "mode": "personal-token", "server_token_used": false
+    }))
+}
+
+async fn cors_preflight() -> StatusCode {
+    StatusCode::NO_CONTENT
+}
+
+/// CORS is a browser boundary, not an authentication method. Disallow
+/// unsolicited cross-origin POSTs and non-preflight-safe browser requests.
+/// Unauthenticated callers cannot use any owner-secret fallback.
+async fn public_origin_guard(req: Request<Body>, next: Next) -> Response {
+    let origin = req.headers().get(header::ORIGIN).and_then(|v| v.to_str().ok());
+    let allowed = origin == Some(TRUSTED_PAGES_ORIGIN);
+    let method = req.method().clone();
+    if method == Method::OPTIONS && !allowed {
+        return (StatusCode::FORBIDDEN, "Untrusted origin").into_response();
+    }
+    if method == Method::POST {
+        if !allowed || req.headers().get("x-howtomcd-client")
+            .and_then(|v| v.to_str().ok()) != Some("1") {
+            return (StatusCode::FORBIDDEN, "Origin and client header required").into_response();
+        }
+    }
+    let mut response = next.run(req).await;
+    response.headers_mut().insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
+    if allowed {
+        response.headers_mut().insert(header::ACCESS_CONTROL_ALLOW_ORIGIN,
+            HeaderValue::from_static(TRUSTED_PAGES_ORIGIN));
+        response.headers_mut().insert(header::VARY, HeaderValue::from_static("Origin"));
+        response.headers_mut().insert(header::ACCESS_CONTROL_ALLOW_METHODS,
+            HeaderValue::from_static("GET, POST, OPTIONS"));
+        response.headers_mut().insert(header::ACCESS_CONTROL_ALLOW_HEADERS,
+            HeaderValue::from_static("content-type, x-howtomcd-client"));
+        response.headers_mut().insert(header::ACCESS_CONTROL_MAX_AGE,
+            HeaderValue::from_static("600"));
+    }
+    response
 }
 
 async fn health() -> Json<Value> {
@@ -125,10 +184,15 @@ struct ShopRequest {
 }
 
 fn shop_token(provided: Option<String>) -> std::result::Result<String, ApiError> {
-    provided.filter(|t| !t.trim().is_empty())
-        .or_else(|| std::env::var("MCD_MCP_TOKEN").ok())
-        .filter(|token| !token.is_empty() && token.len() <= 2048)
-        .ok_or((StatusCode::UNAUTHORIZED, "Enter your personal MCP token"))
+    let token = provided.unwrap_or_default();
+    let token = token.trim();
+    if token.is_empty() || token.len() > 2048 || token.starts_with("Bearer ")
+        || token.chars().any(char::is_control) {
+        return Err((StatusCode::UNAUTHORIZED, "Enter a valid personal MCP token"));
+    }
+    // Only the visitor's personal credential is accepted for ordering.
+    // Never fall back to MCD_MCP_TOKEN configured for private CI smoke tests.
+    Ok(token.to_owned())
 }
 
 // A public Pages static site has no Rust API; a local same-origin Rust server
@@ -215,6 +279,42 @@ mod tests {
         let status = response.status();
         let body = response.into_body().collect().await.unwrap().to_bytes();
         (status, String::from_utf8(body.to_vec()).unwrap())
+    }
+
+    #[tokio::test]
+    async fn public_gateway_rejects_untrusted_origin_and_secret_fallback() {
+        assert!(shop_token(None).is_err());
+        let request = Request::builder().method("POST").uri("/api/mcp/bridge")
+            .header("content-type", "application/json")
+            .body(Body::from(r#"{"tool":"list-nutrition-foods","args":{}}"#)).unwrap();
+        let response = public_api_app().oneshot(request).await.unwrap();
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+        let request = Request::builder().method("POST").uri("/api/mcp/bridge")
+            .header(header::ORIGIN, TRUSTED_PAGES_ORIGIN)
+            .header("x-howtomcd-client", "1")
+            .header("content-type", "application/json")
+            .body(Body::from(r#"{"tool":"list-nutrition-foods","args":{}}"#)).unwrap();
+        let response = public_api_app().oneshot(request).await.unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(response.headers()[header::ACCESS_CONTROL_ALLOW_ORIGIN],
+            TRUSTED_PAGES_ORIGIN);
+    }
+
+    #[tokio::test]
+    async fn public_preflight_and_checkout_guard() {
+        let request = Request::builder().method("OPTIONS").uri("/api/mcp/checkout")
+            .header(header::ORIGIN, TRUSTED_PAGES_ORIGIN)
+            .body(Body::empty()).unwrap();
+        let response = public_api_app().oneshot(request).await.unwrap();
+        assert_eq!(response.status(), StatusCode::NO_CONTENT);
+
+        let request = Request::builder().method("POST").uri("/api/mcp/checkout")
+            .header(header::ORIGIN, TRUSTED_PAGES_ORIGIN)
+            .header("x-howtomcd-client", "1")
+            .header("content-type", "application/json")
+            .body(Body::from(r#"{"token":"local-test","args":{},"confirmed":false,"expected_price_cents":1500}"#)).unwrap();
+        let response = public_api_app().oneshot(request).await.unwrap();
+        assert_eq!(response.status(), StatusCode::PRECONDITION_REQUIRED);
     }
 
     #[tokio::test]
