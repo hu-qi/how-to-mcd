@@ -148,3 +148,35 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  browser-live-shop:
+    # Runs only after Pages actually finishes deploying reviewed main code.
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated Playwright Chromium
+        run: |
+          mkdir -p /tmp/howtomcd-live-shop
+          cd /tmp/howtomcd-live-shop
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify live Pages personal-token read-only ordering journey
+        env:
+          PLAYWRIGHT_PACKAGE_ROOT: /tmp/howtomcd-live-shop/node_modules/playwright
+          MCD_MCP_TOKEN: ${{ secrets.MCD_MCP_TOKEN }}
+          HOWTOMCD_SITE_URL: https://hu-qi.github.io/how-to-mcd/
+        run: |
+          if [ -z "$MCD_MCP_TOKEN" ]; then
+            echo "::error::MCD_MCP_TOKEN Actions secret missing"
+            exit 1
+          fi
+          node scripts/verify-published-shop.mjs
