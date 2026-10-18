@@ -18,6 +18,28 @@
   const clearNode = el => el.replaceChildren();
   const productName = code => s.menu[code]?.name || code;
   const money = cents => "¥" + (Number(cents) / 100).toFixed(2);
+  // Community-inspired methods, NEVER described as official McDonald's recipes.
+  const homeInspiration = name => {
+    if (/薯条/.test(name)) return { search: "薯条", label: "家庭薯条" };
+    if (/麦乐鸡|鸡块/.test(name)) return { search: "鸡块", label: "家庭鸡块" };
+    if (/鸡腿堡|鸡腿汉堡/.test(name)) return { search: "鸡腿", label: "家庭鸡腿汉堡" };
+    return null;
+  };
+  function addHomeInspiration(container, name) {
+    const idea = homeInspiration(name);
+    if (!idea) return;
+    const button = create("button", "shop-item", "🍳 看" + idea.label + "做法（非官方）");
+    button.type = "button";
+    button.addEventListener("click", () => {
+      const search = $("recipe-search");
+      search.value = idea.search;
+      search.dispatchEvent(new Event("input", { bubbles: true }));
+      const card = $("recipe-grid").querySelector(".recipe-card");
+      if (card) card.click(); else $("explore").scrollIntoView({ behavior: "smooth" });
+    });
+    container.append(button);
+  }
+
   const safeHttpPay = href => {
     try {
       const u = new URL(href);
@@ -220,7 +242,9 @@
           s.quote = null; $("shop-quote").hidden = true;
           renderCart();
         });
-        actions.append(details, add); row.append(left, actions); root.append(row);
+        actions.append(details, add);
+        addHomeInspiration(actions, info.name || "");
+        row.append(left, actions); root.append(row);
       };
       categories.forEach(category => {
         root.append(create("h3", "shop-category", category.name || "餐品"));
@@ -368,7 +392,7 @@
         const query = $("nutrition-search").value.trim().toLowerCase();
         clearNode(root);
         const filtered = products.filter(p => p.name.toLowerCase().includes(query));
-        filtered.slice(0, 300).forEach(p => {
+        filtered.forEach(p => {
           const card = create("div", "shop-product");
           const info = create("div");
           info.append(create("strong", "", p.name));
@@ -378,7 +402,9 @@
             p.fat == null ? null : "脂肪 " + p.fat + " g",
             p.sodium == null ? null : "钠 " + p.sodium + " mg"
           ].filter(Boolean).join(" · ")));
-          card.append(info); root.append(card);
+          card.append(info);
+          addHomeInspiration(card, p.name);
+          root.append(card);
         });
         if (!filtered.length) root.append(create("p", "", "暂无符合条件的官方营养条目。"));
       };
