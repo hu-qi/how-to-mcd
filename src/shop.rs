@@ -43,9 +43,18 @@ pub fn official_data(mcp_result: &Value) -> Result<Value> {
 pub fn validate_selection(args: &Value) -> Result<()> {
     let object = args.as_object().context("Order must be a JSON object")?;
     if serde_json::to_vec(args)?.len() > 8192 { bail!("Order exceeds size limit"); }
-    for field in ["storeCode", "beCode"] {
-        let value = object.get(field).and_then(Value::as_str).unwrap_or("");
-        if value.is_empty() || value.len() > 64 { bail!("Missing or invalid store identifier"); }
+    let store_code = object.get("storeCode").and_then(Value::as_str).unwrap_or("");
+    if store_code.is_empty() || store_code.len() > 64 || store_code.chars().any(char::is_control) {
+        bail!("Missing or invalid store identifier");
+    }
+    // Official calculate-price/create-order mark beCode optional. A store
+    // can validly return an empty BE code, so do not reject such requests
+    // before sending them to the authoritative MCP business service.
+    if let Some(be_code) = object.get("beCode") {
+        let be_code = be_code.as_str().context("beCode must be a string")?;
+        if be_code.len() > 64 || be_code.chars().any(char::is_control) {
+            bail!("Invalid BE code");
+        }
     }
     let be_type = object.get("beType").and_then(Value::as_u64)
         .context("Missing beType")?;
@@ -116,6 +125,21 @@ mod tests {
         assert!(validate_order(&bad).is_err());
         bad = sample(); bad["items"][0]["quantity"] = json!(0);
         assert!(validate_order(&bad).is_err());
+    }
+    #[test]
+    fn accepts_optional_empty_be_code_documented_by_official_mcp() {
+        let mut order = sample();
+        order["beCode"] = json!("");
+        assert!(validate_selection(&order).is_ok());
+        assert!(validate_order(&order).is_ok());
+        let args = quote_args(&order).unwrap();
+        assert_eq!(args["beCode"], "");
+        order.as_object_mut().unwrap().remove("beCode");
+        assert!(validate_selection(&order).is_ok());
+        let args = quote_args(&order).unwrap();
+        assert!(args.get("beCode").is_none());
+        order["beCode"] = json!(12);
+        assert!(validate_selection(&order).is_err());
     }
     #[test]
     fn builds_official_quote_from_selected_items() {
