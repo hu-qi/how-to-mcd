@@ -30,11 +30,40 @@ jobs:
           mkdir -p site/assets
           cp web/index.html site/index.html
           cp web/app.js site/assets/app.js
+          cp web/shop.js site/assets/shop.js
           cp web/app.css site/assets/app.css
           touch site/.nojekyll
           test -s site/pkg/howtomcd_wasm_bg.wasm
           test -s site/pkg/howtomcd_wasm.js
           node --check site/assets/app.js
+          node --check site/assets/shop.js
+          node --input-type=module <<'EOF'
+          import assert from 'node:assert/strict';
+          import { extractRows } from './scripts/publish-nutrition.mjs';
+          const sample = {content:[{type:'text',text:JSON.stringify({success:true,code:200,data:'[1]{productName,nutritionDescription,energyKj,energyKcal,protein,fat,carbohydrate,sodium,calcium}:\n  猪柳麦满分,null,1288,308,16,16,24,781,213'})}]};
+          const result = extractRows(sample, '2026-10-18T00:00:00Z');
+          assert.equal(result.total,1);
+          assert.equal(result.products[0].name,'猪柳麦满分');
+          assert.equal(result.products[0].energyKcal,308);
+          assert.equal(result.products[0].sodium,781);
+          console.log('Official MCP TOON public parser fixture passed');
+          EOF
+      - name: Obtain sanitized REAL McDonald's nutrition catalogue with Actions secret
+        if: github.event_name != 'pull_request'
+        env:
+          MCD_MCP_TOKEN: ${{ secrets.MCD_MCP_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$MCD_MCP_TOKEN" ]; then
+            echo "::error::Configure MCD_MCP_TOKEN as a repository secret"
+            exit 1
+          fi
+          umask 077
+          cargo run --quiet -- mcp nutrition > "$RUNNER_TEMP/private-nutrition-response.json"
+          node scripts/publish-nutrition.mjs "$RUNNER_TEMP/private-nutrition-response.json" site/catalog/nutrition.json
+          rm -f "$RUNNER_TEMP/private-nutrition-response.json"
+          test -s site/catalog/nutrition.json
       - name: Execute real Rust/WASM recipe calculations in Node.js
         shell: bash
         run: |

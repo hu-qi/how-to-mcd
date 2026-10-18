@@ -45,6 +45,7 @@ jobs:
           mkdir -p site/assets
           cp web/index.html site/index.html
           cp web/app.js site/assets/app.js
+          cp web/shop.js site/assets/shop.js
           cp web/app.css site/assets/app.css
           touch site/.nojekyll
           test -s site/pkg/howtomcd_wasm_bg.wasm
