@@ -51,7 +51,14 @@
     for (const block of response?.content || []) {
       if (block.type !== "text") continue;
       let content;
-      try { content = JSON.parse(block.text); } catch { continue; }
+      try { content = JSON.parse(block.text); } catch {
+        // Official MCP store queries may put a Chinese field guide before JSON.
+        const start = block.text.indexOf('{"success"');
+        const end = block.text.lastIndexOf("}");
+        if (start < 0 || end < start) continue;
+        try { content = JSON.parse(block.text.slice(start, end + 1)); }
+        catch (_) { continue; }
+      }
       if (content.success === false || (content.code != null && content.code !== 200)) {
         throw Error("官方麦当劳服务拒绝了该请求，请检查账号、门店和点餐参数");
       }
