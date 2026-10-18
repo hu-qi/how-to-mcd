@@ -304,7 +304,7 @@
   async function submit() {
     if (!s.quote || !s.quoteArgs || !$("shop-confirm").checked)
       return notice("请先获取报价并勾选明确确认条款");
-    const args = { ...s.quoteArgs };
+    const { orderType: ignoredOrderType, ...args } = s.quoteArgs;
     if (s.type === 1) {
       args.takeWayCode = $("shop-takeway").value;
       if (!args.takeWayCode) return notice("官方价格接口未提供取餐方式或你尚未选择，无法安全提交。");
