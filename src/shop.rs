@@ -11,10 +11,10 @@ pub fn official_data(mcp_result: &Value) -> Result<Value> {
         .context("MCP reply had no content")?;
     for block in blocks {
         if let Some(text) = block.get("text").and_then(Value::as_str) {
-            let payload = serde_json::from_str::<Value>(text).or_else(|_| {
+            let payload: Result<Value> = serde_json::from_str::<Value>(text).map_err(anyhow::Error::from).or_else(|_| {
                 // Official MCP may prepend natural-language field guidance
                 // before its JSON payload. Only accept a valid success envelope.
-                let start = text.find("{\\\"success\\\"").ok_or_else(|| anyhow::anyhow!("Missing official JSON envelope"))?;
+                let start = text.find(r#"{"success""#).ok_or_else(|| anyhow::anyhow!("Missing official JSON envelope"))?;
                 let end = text.rfind('}').ok_or_else(|| anyhow::anyhow!("Missing JSON closing bracket"))?;
                 serde_json::from_str::<Value>(&text[start..=end]).map_err(Into::into)
             });
@@ -113,6 +113,15 @@ mod tests {
         assert_eq!(args["orderType"], 1);
         assert!(args.get("takeWayCode").is_none());
     }
+    #[test]
+    fn reads_official_json_with_human_readable_preamble() {
+        let reply = json!({"content":[{"type":"text",
+            "text":"每个门店的基本信息按单行展示：\\n{\"success\":true,\"code\":200,\"data\":{\"meals\":{\"42\":{\"name\":\"麦当劳餐品\"}}}}"
+        }]});
+        let data = official_data(&reply).unwrap();
+        assert_eq!(data["meals"]["42"]["name"], "麦当劳餐品");
+    }
+
     #[test]
     fn extracts_verified_business_price() {
         let response = json!({"content":[{"type":"text","text":"{\"success\":true,\"code\":200,\"data\":{\"price\":2200}}"}]});
