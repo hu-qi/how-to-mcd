@@ -85,11 +85,7 @@ jobs:
         run: |
           node --input-type=module <<'EOF'
           import { writeFileSync } from 'node:fs';
-          const raw = process.env.PUBLIC_MCP_API_URL || '';
-          if (!raw) {
-            console.log('No public Rust API configured; the demo stays offline/direct.');
-            process.exit(0);
-          }
+          const raw = process.env.PUBLIC_MCP_API_URL || 'https://how-to-mcd-api.vercel.app';
           const url = new URL(raw);
           if (url.protocol !== 'https:' || url.username || url.password ||
               url.search || url.hash || url.pathname !== '/') {
@@ -99,6 +95,7 @@ jobs:
             JSON.stringify({ apiBase: url.origin }));
           console.log('Public Rust HTTPS API origin configured (no credentials included).');
           EOF
+          test -s site/api-config.json
       - name: Execute real Rust/WASM recipe calculations in Node.js
         shell: bash
         run: |
