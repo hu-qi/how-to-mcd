@@ -7,13 +7,13 @@ use axum::{
     extract::{Path, Query},
     http::{header, StatusCode},
     response::Html,
-    routing::get,
+    routing::{get, post},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
-use crate::{mcp, pantry, recipes::{self, Ingredient, Recipe}};
+use crate::{mcp, mcp_http, pantry, shop, recipes::{self, Ingredient, Recipe}};
 
 type ApiError = (StatusCode, &'static str);
 type ApiResult<T> = std::result::Result<Json<T>, ApiError>;
@@ -44,12 +44,18 @@ fn app() -> Router {
         .route("/assets/app.js", get(|| async {
             ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../web/app.js"))
         }))
+        .route("/assets/shop.js", get(|| async {
+            ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../web/shop.js"))
+        }))
         .route("/api/health", get(health))
         .route("/api/recipes", get(list_recipes))
         .route("/api/recipes/{id}", get(recipe_detail))
         .route("/api/suggestions", get(suggestions))
         .route("/api/mcp/status", get(mcp_status))
         .route("/api/mcp/nutrition", get(nutrition))
+        .route("/api/mcp/bridge", post(mcp_bridge))
+        .route("/api/mcp/quote", post(mcp_quote))
+        .route("/api/mcp/checkout", post(mcp_checkout))
 }
 
 async fn health() -> Json<Value> {
@@ -107,6 +113,78 @@ async fn nutrition() -> ApiResult<Value> {
     Ok(Json(result))
 }
 
+// Tokens supplied through the UI are request-scoped: no filesystem,
+// cookies, application state or browser persistence. Never log requests.
+#[derive(Deserialize)]
+struct ShopRequest {
+    token: Option<String>,
+    tool: Option<String>,
+    args: Value,
+    confirmed: Option<bool>,
+    expected_price_cents: Option<i64>,
+}
+
+fn shop_token(provided: Option<String>) -> std::result::Result<String, ApiError> {
+    provided.filter(|t| !t.trim().is_empty())
+        .or_else(|| std::env::var("MCD_MCP_TOKEN").ok())
+        .filter(|token| !token.is_empty() && token.len() <= 2048)
+        .ok_or((StatusCode::UNAUTHORIZED, "Enter your personal MCP token"))
+}
+
+// A public Pages static site has no Rust API; a local same-origin Rust server
+// can safely forward user-entered tokens over loopback to the official host.
+async fn mcp_bridge(Json(req): Json<ShopRequest>) -> ApiResult<Value> {
+    let token = shop_token(req.token)?;
+    let tool = req.tool.ok_or((StatusCode::BAD_REQUEST, "Select a read-only MCP tool"))?;
+    if !mcp::is_allowed_tool(&tool) {
+        return Err((StatusCode::FORBIDDEN, "This MCP tool is not allowed"));
+    }
+    let result = mcp::call(&token, &tool, req.args).await
+        .map_err(|_| (StatusCode::BAD_GATEWAY, "Official MCP read request failed"))?;
+    // The business result must also be valid; no simulated menus.
+    if tool != "list-nutrition-foods" {
+        shop::official_data(&result)
+            .map_err(|_| (StatusCode::BAD_GATEWAY, "Official menu request was rejected"))?;
+    }
+    Ok(Json(result))
+}
+
+async fn mcp_quote(Json(req): Json<ShopRequest>) -> ApiResult<Value> {
+    let token = shop_token(req.token)?;
+    let quote_args = shop::quote_args(&req.args)
+        .map_err(|_| (StatusCode::BAD_REQUEST, "Select a store and valid products"))?;
+    let result = mcp::call(&token, "calculate-price", quote_args).await
+        .map_err(|_| (StatusCode::BAD_GATEWAY, "Official quote request failed"))?;
+    shop::quote_total(&result)
+        .map_err(|_| (StatusCode::BAD_GATEWAY, "Official price data unavailable"))?;
+    Ok(Json(result))
+}
+
+async fn mcp_checkout(Json(req): Json<ShopRequest>) -> ApiResult<Value> {
+    if req.confirmed != Some(true) {
+        return Err((StatusCode::PRECONDITION_REQUIRED, "User confirmation is required"));
+    }
+    let expected = req.expected_price_cents
+        .filter(|v| (0..=1_000_000).contains(v))
+        .ok_or((StatusCode::BAD_REQUEST, "Missing previously reviewed quote"))?;
+    shop::validate_order(&req.args)
+        .map_err(|_| (StatusCode::BAD_REQUEST, "Incomplete store, item or pickup/delivery selection"))?;
+    let token = shop_token(req.token)?;
+    // Prevent checkout with a stale or forged client-side amount.
+    let fresh_args = shop::quote_args(&req.args)
+        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid official quote arguments"))?;
+    let quote = mcp::call(&token, "calculate-price", fresh_args).await
+        .map_err(|_| (StatusCode::BAD_GATEWAY, "Unable to reprice order"))?;
+    let actual = shop::quote_total(&quote)
+        .map_err(|_| (StatusCode::BAD_GATEWAY, "Invalid official price response"))?;
+    if actual != expected {
+        return Err((StatusCode::CONFLICT, "Price changed; get a new official quote before confirming"));
+    }
+    let result = mcp_http::create_confirmed_order(&token, req.args).await
+        .map_err(|_| (StatusCode::BAD_GATEWAY, "Official order submission failed; check your account before retrying"))?;
+    Ok(Json(result))
+}
+
 /// Bind only to a loopback address, to prevent unauthenticated remote clients
 /// from using the host's private MCP credentials.
 pub async fn serve(host: &str, port: u16) -> Result<()> {
@@ -141,7 +219,7 @@ mod tests {
 
     #[tokio::test]
     async fn routes_and_assets_respond() {
-        for path in ["/", "/assets/app.css", "/assets/app.js", "/api/health", "/api/recipes"] {
+        for path in ["/", "/assets/app.css", "/assets/app.js", "/assets/shop.js", "/api/health", "/api/recipes"] {
             let (status, body) = request(path).await;
             assert_eq!(status, StatusCode::OK, "{path}: {body}");
             assert!(!body.is_empty(), "{path}");
@@ -172,6 +250,16 @@ mod tests {
         let result: Value = serde_json::from_str(&body).unwrap();
         assert_eq!(result[0]["id"], "chicken-burger");
         assert!(result[0]["score_percent"].as_u64().unwrap() > 0);
+    }
+
+    #[tokio::test]
+    async fn checkout_denies_any_unconfirmed_requests_without_external_side_effects() {
+        let body = json!({"token":"secret","args":{},"confirmed":false,"expected_price_cents":2200});
+        let response = app().oneshot(Request::builder()
+            .method("POST").uri("/api/mcp/checkout")
+            .header("content-type", "application/json")
+            .body(Body::from(body.to_string())).unwrap()).await.unwrap();
+        assert_eq!(response.status(), StatusCode::PRECONDITION_REQUIRED);
     }
 
     #[tokio::test]
