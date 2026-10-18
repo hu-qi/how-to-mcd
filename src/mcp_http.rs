@@ -171,6 +171,20 @@ pub async fn call(token: &str, name: &str, args: Value) -> Result<Value> {
     Ok(result)
 }
 
+/// A deliberately separated side-effecting path. The public generic
+/// MCP dispatcher does not permit create-order. The loopback checkout
+/// endpoint validates consent and re-prices immediately before calling here.
+pub(crate) async fn create_confirmed_order(token: &str, args: Value) -> Result<Value> {
+    crate::shop::validate_order(&args)?;
+    let session = Session::new(token).await?;
+    let result = session.call_rpc("tools/call", Some(json!({
+        "name": "create-order",
+        "arguments": args
+    }))).await?;
+    crate::shop::official_data(&result)?;
+    Ok(result)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
