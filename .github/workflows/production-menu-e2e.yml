@@ -26,7 +26,7 @@ jobs:
           assert.ok(token, 'MCD_MCP_TOKEN secret required');
           const base = 'https://how-to-mcd-api.vercel.app';
           const data = (reply) => {
-            assert.equal(reply.isError, undefined, 'MCP tool reported error');
+            assert.notEqual(reply.isError, true, 'MCP tool reported error');
             for (const part of reply.content || []) {
               if (part.type !== 'text') continue;
               const parsed = parseBusinessText(part.text);
