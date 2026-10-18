@@ -10,7 +10,7 @@
     return e;
   };
   const s = {
-    token: "", mode: null, session: null, type: 1,
+    token: "", mode: null, apiBase: "", session: null, type: 1,
     store: null, stores: [], menu: {}, cart: new Map(),
     addressId: "", addresses: [], quote: null, quoteArgs: null
   };
@@ -89,11 +89,11 @@
   };
   async function rpc(method, args = {}) {
     if (!s.token) throw Error("请输入你的个人麦当劳 MCP Token");
-    if (s.mode === "local") {
-      const endpoint = method === "calculate-price" ? "/api/mcp/quote" : "/api/mcp/bridge";
+    if (s.mode === "local" || s.mode === "hosted") {
+      const endpoint = s.apiBase + (method === "calculate-price" ? "/api/mcp/quote" : "/api/mcp/bridge");
       const resp = await fetch(endpoint, {
-        method: "POST", credentials: "omit", cache: "no-store",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", mode: "cors", credentials: "omit", cache: "no-store",
+        headers: { "Content-Type": "application/json", "X-HowToMCD-Client": "1" },
         body: JSON.stringify({ token: s.token, tool: method, args })
       });
       if (!resp.ok) throw Error("本地 Rust 桥接失败：" + resp.status + "，请检查服务与 Token");
@@ -156,6 +156,33 @@
     if (result.error) throw Error("官方 MCP 调用失败");
     return result.result;
   }
+  // The static Pages build may publish only a PUBLIC backend URL.
+  // No authentication secret or OAuth token is ever bundled here.
+  async function resolveBackend() {
+    const local = await fetch("/api/health", { cache: "no-store" })
+      .then(async r => r.ok && (await r.json()).service === "how-to-mcd")
+      .catch(() => false);
+    if (local) return { mode: "local", apiBase: "" };
+    try {
+      const file = new URL("api-config.json", document.baseURI);
+      const response = await fetch(file.href, { cache: "no-store" });
+      if (!response.ok) throw Error("no hosted backend configured");
+      const config = await response.json();
+      const url = new URL(config.apiBase);
+      if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash
+        || url.pathname !== "/") throw Error("invalid public API URL");
+      const health = await fetch(url.origin + "/api/health", {
+        mode: "cors", cache: "no-store", credentials: "omit"
+      });
+      if (!health.ok || (await health.json()).service !== "how-to-mcd-public-api") {
+        throw Error("hosted Rust API not ready");
+      }
+      return { mode: "hosted", apiBase: url.origin };
+    } catch {
+      return { mode: "direct", apiBase: "" };
+    }
+  }
+
   async function connect(event) {
     event.preventDefault();
     const token = $("shop-token").value.trim();
@@ -166,15 +193,16 @@
     s.session = null;
     s.mode = null;
     s.quote = null;
-    const local = await fetch("/api/health", { cache: "no-store" }).then(r => r.ok).catch(() => false);
-    s.mode = local ? "local" : "direct";
+    const backend = await resolveBackend();
+    s.mode = backend.mode;
+    s.apiBase = backend.apiBase;
     try {
       const data = await rpc("list-nutrition-foods");
       if (!data) throw Error("无法校验 Token");
       $("shop-disconnect").hidden = false;
       $("shop-connect").hidden = true;
       $("shop-controls").hidden = false;
-      notice("已连接官方 MCP（" + (local ? "本机 Rust 安全桥接" : "浏览器直连") + "）。Token 只保存在当前页面内存，关闭或刷新后清除。");
+      notice("已连接官方 MCP（" + (s.mode === "local" ? "本机 Rust API" : s.mode === "hosted" ? "独立 Rust HTTPS API" : "浏览器直连") + "）。Token 只保存在当前页面内存，关闭或刷新后清除。");
     } catch (err) {
       s.token = "";
       s.session = null;
@@ -183,7 +211,7 @@
     }
   }
   function disconnect() {
-    s.token = ""; s.mode = null; s.session = null; s.store = null;
+    s.token = ""; s.mode = null; s.apiBase = ""; s.session = null; s.store = null;
     s.cart.clear(); s.quote = null; s.menu = {}; s.addressId = "";
     $("shop-connect").hidden = false; $("shop-disconnect").hidden = true;
     $("shop-controls").hidden = true; $("shop-quote").hidden = true;
@@ -388,10 +416,10 @@
     notice("正在重新核对官方价格并提交真实订单，请勿重复点击……");
     try {
       let result;
-      if (s.mode === "local") {
-        const response = await fetch("/api/mcp/checkout", {
-          method: "POST", cache: "no-store", credentials: "omit",
-          headers: { "Content-Type": "application/json" },
+      if (s.mode === "local" || s.mode === "hosted") {
+        const response = await fetch(s.apiBase + "/api/mcp/checkout", {
+          method: "POST", mode: "cors", cache: "no-store", credentials: "omit",
+          headers: { "Content-Type": "application/json", "X-HowToMCD-Client": "1" },
           body: JSON.stringify({
             token: s.token, args, confirmed: true, expected_price_cents: s.quote.price
           })
