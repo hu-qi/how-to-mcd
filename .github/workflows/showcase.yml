@@ -2,6 +2,12 @@ name: Capture Contest Demo Evidence
 
 on:
   workflow_dispatch:
+    inputs:
+      published_site:
+        description: "Capture the already published GitHub Pages site instead of the candidate local WASM build"
+        required: false
+        type: boolean
+        default: false
   pull_request:
     paths:
       - scripts/capture-showcase.mjs
@@ -24,6 +30,24 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: v0.15.0
+      - name: Build actual candidate Rust/WebAssembly site
+        shell: bash
+        run: |
+          set -euo pipefail
+          wasm-pack build crates/howtomcd-wasm --target web --release --out-dir ../../site/pkg --no-opt
+          mkdir -p site/assets
+          cp web/index.html site/index.html
+          cp web/app.js site/assets/app.js
+          cp web/app.css site/assets/app.css
+          touch site/.nojekyll
+          test -s site/pkg/howtomcd_wasm_bg.wasm
       - name: Install Playwright and Chromium for live-site tests
         shell: bash
         run: |
@@ -31,12 +55,18 @@ jobs:
           mkdir -p /tmp/howtomcd-showcase-test
           cd /tmp/howtomcd-showcase-test
           npm init -y >/dev/null
-          npm install --no-audit --no-fund playwright@1.56.1
+          npm install --no-audit --no-fund playwright@1.56.1 http-server@14.1.1
           npx playwright install --with-deps chromium
-      - name: Verify public site on desktop and mobile and capture genuine footage
+      - name: Start HTTP server for the actual candidate WASM site
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/howtomcd-showcase-test/node_modules/.bin/http-server site -a 127.0.0.1 -p 4173 -c-1 > "$RUNNER_TEMP/showcase-http.log" 2>&1 &
+          curl --fail --silent --show-error --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:4173/ > /dev/null
+      - name: Verify real site on desktop and mobile and capture genuine footage
         env:
           PLAYWRIGHT_PACKAGE_ROOT: /tmp/howtomcd-showcase-test/node_modules/playwright
-          SHOWCASE_URL: https://hu-qi.github.io/how-to-mcd/
+          SHOWCASE_URL: ${{ inputs.published_site && 'https://hu-qi.github.io/how-to-mcd/' || 'http://127.0.0.1:4173/' }}
         run: node scripts/capture-showcase.mjs
       - name: Upload screenshots, verification report, and MP4
         if: always()
