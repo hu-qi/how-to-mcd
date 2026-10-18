@@ -1,0 +1,60 @@
+name: Production menu and quote E2E (read-only)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/production-menu-e2e.yml
+      - web/shop.js
+      - src/web.rs
+      - scripts/mcp-menu-verify.mjs
+permissions:
+  contents: read
+jobs:
+  read-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate real personal-token gateway, menu and price (NO ORDER)
+        env:
+          MCD_MCP_TOKEN: ${{ secrets.MCD_MCP_TOKEN }}
+        run: |
+          node --input-type=module <<'EOF'
+          import assert from 'node:assert/strict';
+          import {parseBusinessText, selectedStore, menuCounts} from './scripts/mcp-menu-verify.mjs';
+          const token = process.env.MCD_MCP_TOKEN;
+          assert.ok(token, 'MCD_MCP_TOKEN secret required');
+          const base = 'https://how-to-mcd-api.vercel.app';
+          const data = (reply) => {
+            assert.equal(reply.isError, undefined, 'MCP tool reported error');
+            for (const part of reply.content || []) {
+              if (part.type !== 'text') continue;
+              const parsed = parseBusinessText(part.text);
+              if (!parsed) continue;
+              assert.notEqual(parsed.success, false, 'Official business error');
+              assert.ok(parsed.code == null || parsed.code === 200, 'Unexpected business code');
+              return parsed.data ?? parsed;
+            }
+            throw Error('Official structured data missing');
+          };
+          const call = async (tool, args = {}) => {
+            const resp = await fetch(base + (tool === 'calculate-price' ? '/api/mcp/quote' : '/api/mcp/bridge'), {
+              method:'POST',headers:{Origin:'https://hu-qi.github.io','X-HowToMCD-Client':'1','Content-Type':'application/json'},
+              body:JSON.stringify({token, tool, args}), redirect:'error',signal:AbortSignal.timeout(45000)
+            });
+            assert.equal(resp.status,200, tool + ': gateway HTTP '+resp.status);
+            return data(await resp.json());
+          };
+          const stores = await call('query-nearby-stores',{searchType:2,beType:1,city:'北京市',keyword:'朝阳区'});
+          const store = selectedStore(stores);
+          const menu = await call('query-meals',store);
+          const counts = menuCounts(menu);
+          console.log('Official live menu through production HTTPS gateway:', counts.productCount, 'products', counts.categoryCount, 'categories');
+          // Price is read-only. Try one ordinary product; never call create-order.
+          const entries = Object.entries(menu.meals || {}).filter(([code, p]) => code && typeof p?.name === 'string');
+          assert.ok(entries.length > 0);
+          const [productCode] = entries[0];
+          const quote = await call('calculate-price',{...store,items:[{productCode,quantity:1}]});
+          assert.ok(Number.isInteger(quote.price) && quote.price >= 0, 'Official cent-denominated price required');
+          console.log('Official live quote verified (no amounts, account data or credentials logged); create-order never invoked.');
+          EOF
