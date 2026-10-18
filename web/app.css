@@ -35,3 +35,5 @@
 .shop-payment strong{overflow-wrap:anywhere}
 @media(max-width:760px){.nutrition-panel,.shop-panel{padding:18px}.nutrition-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.shop-product{flex-wrap:wrap}.shop-product .shop-actions{width:100%}.shop-connection .btn{width:100%}.shop-nested{flex-basis:100%}}
 @media(max-width:510px){.nutrition-grid{grid-template-columns:1fr}.shop-form-grid{display:block}.shop-form-grid>.shop-field{margin:12px 0}.shop-nested{display:block}.shop-product .shop-item{font-size:12px;padding:9px}.shop-actions{align-items:center}}
+
+.shop-product .shop-actions{flex-wrap:wrap}.shop-product>.shop-item{flex-shrink:1;max-width:100%}
