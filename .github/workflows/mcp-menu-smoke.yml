@@ -8,6 +8,9 @@ on:
     branches: [main]
     paths:
       - .github/workflows/mcp-menu-smoke.yml
+      - scripts/mcp-menu-verify.mjs
+      - src/shop.rs
+      - web/shop.js
 
 permissions:
   contents: read
@@ -29,6 +32,9 @@ jobs:
             {storeCode:'test',beCode:'CN',orderType:1,beType:1});
           assert.deepEqual(menuCounts({meals:{'100':{name:'fixture'}},categories:[{name:'fixture'}]}),
             {productCount:1,categoryCount:1});
+          const { parseBusinessText } = await import('./scripts/mcp-menu-verify.mjs');
+          assert.equal(parseBusinessText('门店帮助文字\\n{"success":true,"code":200,"data":{"x":1}}').data.x, 1);
+          assert.equal(parseBusinessText('not valid {guidance}'), null);
           console.log('Read-only menu verifier fixture passed');
           EOF
       - name: Query genuine nearby stores and live menu (read-only)
