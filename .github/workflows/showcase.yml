@@ -1,0 +1,44 @@
+name: Capture Contest Demo Evidence
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/capture-showcase.mjs
+      - .github/workflows/showcase.yml
+
+permissions:
+  contents: read
+
+jobs:
+  browser-demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright and Chromium for live-site tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/howtomcd-showcase-test
+          cd /tmp/howtomcd-showcase-test
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verify public site on desktop and mobile and capture genuine footage
+        env:
+          PLAYWRIGHT_PACKAGE_ROOT: /tmp/howtomcd-showcase-test/node_modules/playwright
+          SHOWCASE_URL: https://hu-qi.github.io/how-to-mcd/
+        run: node scripts/capture-showcase.mjs
+      - name: Upload screenshots, verification report, and MP4
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: howtomcd-contest-evidence
+          path: demo-evidence/
+          if-no-files-found: warn
+          retention-days: 30
