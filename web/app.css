@@ -4,3 +4,34 @@
 /* Explainable Rust pantry match UI */
 .pantry-panel{display:flex;align-items:center;gap:16px;background:linear-gradient(110deg,#344832,#213425);border:1px solid #87ac675c;border-radius:14px;padding:16px 18px;margin-bottom:18px}.pantry-icon{width:48px;height:48px;background:#d3f17b1f;border-radius:12px;display:grid;place-items:center;font-size:25px;flex-shrink:0}.pantry-copy{display:flex;flex-direction:column;gap:5px;min-width:210px}.pantry-copy strong{font-size:14px}.pantry-copy span{font-size:11px;color:var(--muted);line-height:1.55}.pantry-field{flex:1;min-width:100px}.pantry-field input{width:100%;border:1px solid #738a6b;border-radius:9px;padding:13px 14px;outline:none;color:var(--text);background:#101f17;font-size:12px}.pantry-field input:focus{border-color:var(--lime)}.pantry-field input::placeholder{color:#809783}.pantry-submit{padding:13px 16px;border:none;border-radius:9px;background:var(--lime);color:#1d291b;font-weight:800;font-size:12px;white-space:nowrap}.pantry-submit:hover{background:#e5fba7}.pantry-results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:24px}.pantry-result{display:flex;flex-direction:column;gap:9px;background:#182a1d;border:1px solid #6482575c;border-radius:12px;text-align:left;color:var(--text);padding:16px;min-width:0}.pantry-result:hover{border-color:var(--lime)}.pantry-result strong{font-size:13px}.pantry-percent{color:var(--lime);font-size:22px;font-weight:800}.pantry-result small{color:var(--muted);font-size:11px;line-height:1.7}.pantry-next{margin-top:auto;padding-top:9px;color:var(--lime)!important}.pantry-result-empty{grid-column:1/-1;color:var(--muted);font-size:12px;padding:14px;border:1px dashed var(--line);border-radius:10px}
 @media(max-width:1030px){.pantry-panel{flex-wrap:wrap}.pantry-copy{flex:1}.pantry-field{flex-basis:60%}}@media(max-width:650px){.pantry-panel{gap:11px;padding:14px}.pantry-copy{flex-basis:calc(100% - 64px)}.pantry-field{flex-basis:100%}.pantry-submit{width:100%}.pantry-results{grid-template-columns:1fr}}
+
+
+/* Official data + explicit, personal-token ordering experience */
+.official-section{border-top:1px solid var(--line)}.official-section .section-heading{margin-bottom:30px}
+.nutrition-panel,.shop-panel{padding:30px;margin-bottom:22px}
+.nutrition-panel h3,.shop-panel h3{font-size:25px;margin:14px 0 12px}
+.shop-note{font-size:13px;line-height:1.8;color:var(--muted);overflow-wrap:anywhere}
+.shop-field{display:flex;flex-direction:column;gap:7px;flex:1;font-size:12px;color:var(--muted);font-weight:700}
+.shop-field input,.shop-field select{width:100%;min-width:0;border:1px solid var(--line);background:#0d1611;border-radius:12px;color:var(--text);padding:13px;outline:none}
+.shop-field input:focus,.shop-field select:focus{border-color:var(--lime);box-shadow:0 0 0 2px #d3f17b33}
+.shop-connection,.shop-actions,.shop-form-grid{display:flex;align-items:end;gap:13px;flex-wrap:wrap}
+.shop-connection{margin:20px 0}.shop-connection .btn{white-space:nowrap}
+.shop-form-grid{align-items:stretch;margin:18px 0}.shop-nested{display:flex;flex:2;min-width:250px}.shop-form-grid>.shop-field{min-width:170px}
+.shop-item{border:1px solid var(--line);background:#25382b;color:var(--text);border-radius:11px;padding:10px 15px;line-height:1.35;cursor:pointer;font-weight:600;text-align:left}
+.shop-item:hover{border-color:var(--lime)}.shop-primary{color:#101814;background:var(--lime);border-color:var(--lime)}
+.shop-store-list{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.shop-menu-list{max-height:660px;overflow:auto;display:block;scrollbar-color:var(--line) transparent}
+.shop-category{color:var(--lime);font-size:16px;margin:23px 0 11px}
+.shop-product{display:flex;justify-content:space-between;align-items:center;gap:15px;background:#0e1912;border:1px solid #ffffff13;padding:13px 16px;margin:8px 0;border-radius:12px;min-width:0}
+.shop-product>div:first-child{min-width:0;overflow-wrap:anywhere}.shop-product strong{display:block;font-size:14px}.shop-product small{display:block;margin-top:8px;color:var(--muted);font-size:11px}
+.shop-product .shop-actions{flex-wrap:nowrap}.shop-product .shop-item{white-space:nowrap}
+.nutrition-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:18px;max-height:480px;overflow:auto}
+.nutrition-grid .shop-product{margin:0;align-items:start}
+.shop-cart-box,.shop-detail{margin-top:23px;border-top:1px solid var(--line);padding-top:19px}
+.shop-cart-box>button,.shop-cart-box .btn{margin-top:15px}.shop-detail p{font-size:13px;color:var(--muted)}
+.shop-agreement{display:flex;gap:10px;align-items:start;margin:18px 0;font-size:13px;line-height:1.6}
+.shop-agreement input{accent-color:var(--lime);margin-top:3px}
+.shop-payment{margin-top:18px}.shop-payment a{display:inline-block;margin-left:14px}
+.shop-payment strong{overflow-wrap:anywhere}
+@media(max-width:760px){.nutrition-panel,.shop-panel{padding:18px}.nutrition-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.shop-product{flex-wrap:wrap}.shop-product .shop-actions{width:100%}.shop-connection .btn{width:100%}.shop-nested{flex-basis:100%}}
+@media(max-width:510px){.nutrition-grid{grid-template-columns:1fr}.shop-form-grid{display:block}.shop-form-grid>.shop-field{margin:12px 0}.shop-nested{display:block}.shop-product .shop-item{font-size:12px;padding:9px}.shop-actions{align-items:center}}
