@@ -96,7 +96,7 @@
         headers: { "Content-Type": "application/json", "X-HowToMCD-Client": "1" },
         body: JSON.stringify({ token: s.token, tool: method, args })
       });
-      if (!resp.ok) throw Error("本地 Rust 桥接失败：" + resp.status + "，请检查服务与 Token");
+      if (!resp.ok) throw Error("Rust MCP 网关请求失败：" + resp.status + "，请检查服务与 Token");
       return officialData(await resp.json());
     }
     return officialData(await direct(method, args));
@@ -179,7 +179,7 @@
       }
       return { mode: "hosted", apiBase: url.origin };
     } catch {
-      return { mode: "direct", apiBase: "" };
+      throw Error("公网 Rust MCP 网关不可用，点餐连接已停止。请检查服务，或在本机运行 cargo run -- serve；不会将 Token 转为浏览器直连请求。");
     }
   }
 
@@ -193,10 +193,10 @@
     s.session = null;
     s.mode = null;
     s.quote = null;
-    const backend = await resolveBackend();
-    s.mode = backend.mode;
-    s.apiBase = backend.apiBase;
     try {
+      const backend = await resolveBackend();
+      s.mode = backend.mode;
+      s.apiBase = backend.apiBase;
       const data = await rpc("list-nutrition-foods");
       if (!data) throw Error("无法校验 Token");
       $("shop-disconnect").hidden = false;
@@ -206,6 +206,8 @@
     } catch (err) {
       s.token = "";
       s.session = null;
+      s.mode = null;
+      s.apiBase = "";
       $("shop-connect").hidden = false;
       notice(err.message);
     }
