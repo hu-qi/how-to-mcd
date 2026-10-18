@@ -7,12 +7,15 @@ function result(file) {
   if (mcp.isError) throw Error("Official MCP tool reported error");
   for (const item of mcp.content || []) {
     if (item.type !== "text") continue;
-    const parsed = JSON.parse(item.text);
+    let parsed;
+    try { parsed = JSON.parse(item.text); }
+    catch (_) { continue; } // MCP may precede structured data with human-readable guidance
+
     if (parsed.success === false || (parsed.code != null && parsed.code !== 200))
       throw Error("Official MCP business response was not successful");
     return parsed.data || parsed;
   }
-  throw Error("No official MCP JSON tool result");
+  throw Error("No structured JSON result was provided by official MCP (ignored non-JSON guidance)");
 }
 export function selectedStore(data) {
   const stores = Array.isArray(data) ? data : (data?.stores || data?.storeList || []);
