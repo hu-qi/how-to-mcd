@@ -70,14 +70,14 @@ try {
   await page.locator("#pantry-input").fill("鸡腿肉、面包、生菜");
   await page.locator("#pantry-form button[type=submit]").click();
   await page.locator(".pantry-result").first().waitFor({ timeout: 20000 });
-  assert.match(await page.locator(".pantry-result").first().textContent(), /鸡腿堡/);
+  assert.match(await page.locator(".pantry-result").first().textContent(), /鸡腿(?:汉)?堡/);
   await quietScreenshot("02-desktop-pantry-recommendations.png");
   await caption("02 / 05  输入冰箱食材 → Rust 匹配食谱与缺料清单");
   await page.waitForTimeout(7000);
 
   await page.locator(".pantry-result").first().click();
   await page.locator("#bench-content").waitFor({ state: "visible", timeout: 20000 });
-  assert.match(await page.locator("#selected-title").textContent(), /鸡腿堡/);
+  assert.match(await page.locator("#selected-title").textContent(), /鸡腿(?:汉)?堡/);
   while (Number(await page.locator("#serving-value").textContent()) < 4) {
     await page.locator("#increase").click();
   }
@@ -127,7 +127,7 @@ try {
   await quietScreenshot("06-mobile-pantry-recommendations.png", phone);
   await phone.locator(".pantry-result").first().click();
   await phone.locator("#bench-content").waitFor({ state: "visible" });
-  assert.match(await phone.locator("#selected-title").textContent(), /鸡腿堡/);
+  assert.match(await phone.locator("#selected-title").textContent(), /鸡腿(?:汉)?堡/);
   await quietScreenshot("07-mobile-workbench.png", phone);
   await phone.locator("#start-cooking").click();
   await phone.locator("#cook-dialog").waitFor({ state: "visible" });
