@@ -193,8 +193,24 @@
   function setStore(store) {
     s.store = store; s.cart.clear(); s.quote = null; s.menu = {};
     $("shop-quote").hidden = true;
-    $("shop-store-name").textContent = store.storeName || store.name || store.storeCode;
+    $("shop-store-name").textContent = store.storeName || store.name || store.storeCode || store.storeNo;
     notice("已选择门店：" + (store.storeName || store.storeCode) + "；可以获取该门店的实时可售菜单。");
+  }
+  // Different official MCP scenarios return nested lists. Preserve the
+  // original records and never synthesize restaurant identifiers.
+  function officialStores(data, depth = 0) {
+    if (!data || depth > 4 || typeof data !== "object") return [];
+    if (Array.isArray(data)) {
+      if (data.some(item => item && (item.storeCode || item.storeNo))) return data;
+      return data.flatMap(item => officialStores(item, depth + 1));
+    }
+    for (const key of ["stores", "storeList", "data", "list", "records", "nearbyStores", "storeInfoList"]) {
+      if (data[key] != null) {
+        const found = officialStores(data[key], depth + 1);
+        if (found.length) return found;
+      }
+    }
+    return [];
   }
   async function loadStores() {
     notice("正在查询官方门店……");
@@ -212,7 +228,7 @@
         if (!city || !keyword) throw Error("请输入城市和位置关键词");
         stores = await rpc("query-nearby-stores", { searchType: 2, beType: 1, city, keyword });
       }
-      s.stores = Array.isArray(stores) ? stores : (stores.stores || stores.storeList || []);
+      s.stores = officialStores(stores);
       const root = $("shop-stores");
       clearNode(root);
       if (!s.stores.length) return notice("官方服务没有返回符合条件的门店，请调整城市或地址");
