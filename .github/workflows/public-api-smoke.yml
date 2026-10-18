@@ -1,0 +1,53 @@
+name: Hosted Rust MCP API smoke
+# Live production gateway checks. Official token used ONLY by trusted main job.
+on:
+  pull_request:
+    paths:
+      - scripts/public-api-smoke.mjs
+      - .github/workflows/public-api-smoke.yml
+      - src/web.rs
+      - src/shop.rs
+      - vercel.json
+  push:
+    branches: [main]
+    paths:
+      - scripts/public-api-smoke.mjs
+      - .github/workflows/public-api-smoke.yml
+      - src/web.rs
+      - src/shop.rs
+      - vercel.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-gateway-guardrails:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check smoke test JavaScript
+        run: node --check scripts/public-api-smoke.mjs
+      - name: Real HTTPS health, CORS and checkout consent checks
+        env:
+          HOWTOMCD_PUBLIC_API_URL: https://how-to-mcd-api.vercel.app
+        run: node scripts/public-api-smoke.mjs
+
+  official-menu-readonly:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: public-gateway-guardrails
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - name: Real official store and full current menu via hosted Rust gateway
+        env:
+          HOWTOMCD_PUBLIC_API_URL: https://how-to-mcd-api.vercel.app
+          MCD_MCP_TOKEN: ${{ secrets.MCD_MCP_TOKEN }}
+        run: |
+          if [ -z "$MCD_MCP_TOKEN" ]; then
+            echo "::error::MCD_MCP_TOKEN Actions secret is missing"
+            exit 1
+          fi
+          node scripts/public-api-smoke.mjs
