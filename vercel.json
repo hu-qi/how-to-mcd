@@ -9,10 +9,5 @@
       "source": "/",
       "destination": "/api/public_api"
     }
-  ],
-  "functions": {
-    "api/public_api.rs": {
-      "maxDuration": 60
-    }
-  }
+  ]
 }
