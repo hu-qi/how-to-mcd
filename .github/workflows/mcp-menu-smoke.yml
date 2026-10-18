@@ -1,5 +1,6 @@
 name: Real McDonald's Store Menu Smoke
 # The official MCP can return text guidance before structured JSON blocks.
+# Keep diagnostics capped and redacted; this never creates orders.
 
 on:
   workflow_dispatch:
