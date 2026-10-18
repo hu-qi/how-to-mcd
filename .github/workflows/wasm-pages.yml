@@ -96,7 +96,7 @@ jobs:
             throw Error('HOWTOMCD_PUBLIC_API_URL must be an HTTPS origin');
           }
           writeFileSync('site/api-config.json',
-            JSON.stringify({ apiBase: url.origin }) + '\\n');
+            JSON.stringify({ apiBase: url.origin }));
           console.log('Public Rust HTTPS API origin configured (no credentials included).');
           EOF
       - name: Execute real Rust/WASM recipe calculations in Node.js
