@@ -85,15 +85,21 @@ jobs:
         run: |
           node --input-type=module <<'EOF'
           import { writeFileSync } from 'node:fs';
-          const raw = process.env.PUBLIC_MCP_API_URL || '';
-          if (!raw) {
-            console.log('No public Rust API configured; the demo stays offline/direct.');
-            process.exit(0);
-          }
+          // Default to the production Rust gateway after external smoke checks.
+          // Repository variable can override its public origin (never a token).
+          const raw = process.env.PUBLIC_MCP_API_URL || 'https://how-to-mcd-api.vercel.app';
           const url = new URL(raw);
           if (url.protocol !== 'https:' || url.username || url.password ||
               url.search || url.hash || url.pathname !== '/') {
             throw Error('HOWTOMCD_PUBLIC_API_URL must be an HTTPS origin');
+          }
+          const healthResponse = await fetch(url.origin + '/api/health', {
+            headers: { Origin: 'https://hu-qi.github.io' }
+          });
+          if (!healthResponse.ok) throw Error('Public Rust API health check failed');
+          const health = await healthResponse.json();
+          if (health.service !== 'how-to-mcd-public-api' || health.server_token_used !== false) {
+            throw Error('Public Rust gateway identity or personal-token mode mismatch');
           }
           writeFileSync('site/api-config.json',
             JSON.stringify({ apiBase: url.origin }));
