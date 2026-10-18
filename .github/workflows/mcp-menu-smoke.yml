@@ -1,0 +1,44 @@
+name: Real McDonald's Store Menu Smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/mcp-menu-smoke.yml
+
+permissions:
+  contents: read
+
+jobs:
+  menu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Check verifier fixtures without credentials
+        shell: bash
+        run: |
+          node --input-type=module <<'EOF'
+          import assert from 'node:assert/strict';
+          import { selectedStore, menuCounts } from './scripts/mcp-menu-verify.mjs';
+          assert.deepEqual(selectedStore([{storeCode:'test',beCode:'CN',businessStatus:true}]),
+            {storeCode:'test',beCode:'CN',orderType:1,beType:1});
+          assert.deepEqual(menuCounts({meals:{'100':{name:'fixture'}},categories:[{name:'fixture'}]}),
+            {productCount:1,categoryCount:1});
+          console.log('Read-only menu verifier fixture passed');
+          EOF
+      - name: Query genuine nearby stores and live menu (read-only)
+        env:
+          MCD_MCP_TOKEN: ${{ secrets.MCD_MCP_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$MCD_MCP_TOKEN" ]; then echo "::error::Configure MCD_MCP_TOKEN"; exit 1; fi
+          umask 077
+          cargo run --quiet -- mcp call query-nearby-stores --args '{"searchType":2,"beType":1,"city":"北京市","keyword":"朝阳区"}' > "$RUNNER_TEMP/stores.json"
+          node scripts/mcp-menu-verify.mjs stores "$RUNNER_TEMP/stores.json" > "$RUNNER_TEMP/menu-args.json"
+          cargo run --quiet -- mcp call query-meals --args "$(cat "$RUNNER_TEMP/menu-args.json")" > "$RUNNER_TEMP/store-menu.json"
+          node scripts/mcp-menu-verify.mjs menu "$RUNNER_TEMP/store-menu.json"
+          rm -f "$RUNNER_TEMP/stores.json" "$RUNNER_TEMP/menu-args.json" "$RUNNER_TEMP/store-menu.json"
