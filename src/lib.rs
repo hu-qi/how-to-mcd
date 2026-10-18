@@ -4,3 +4,5 @@ pub mod mcp_http;
 pub mod pantry;
 pub mod recipes;
 pub mod web;
+
+pub mod shop;
