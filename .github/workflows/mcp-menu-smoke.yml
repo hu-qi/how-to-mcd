@@ -1,4 +1,5 @@
 name: Real McDonald's Store Menu Smoke
+# The official MCP can return text guidance before structured JSON blocks.
 
 on:
   workflow_dispatch:
