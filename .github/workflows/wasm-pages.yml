@@ -78,6 +78,27 @@ jobs:
             exit 1
           fi
           test -s site/catalog/nutrition.json
+      - name: Configure publicly hosted Rust API endpoint (URL only)
+        env:
+          PUBLIC_MCP_API_URL: ${{ vars.HOWTOMCD_PUBLIC_API_URL }}
+        shell: bash
+        run: |
+          node --input-type=module <<'EOF'
+          import { writeFileSync } from 'node:fs';
+          const raw = process.env.PUBLIC_MCP_API_URL || '';
+          if (!raw) {
+            console.log('No public Rust API configured; the demo stays offline/direct.');
+            process.exit(0);
+          }
+          const url = new URL(raw);
+          if (url.protocol !== 'https:' || url.username || url.password ||
+              url.search || url.hash || url.pathname !== '/') {
+            throw Error('HOWTOMCD_PUBLIC_API_URL must be an HTTPS origin');
+          }
+          writeFileSync('site/api-config.json',
+            JSON.stringify({ apiBase: url.origin }));
+          console.log('Public Rust HTTPS API origin configured (no credentials included).');
+          EOF
       - name: Execute real Rust/WASM recipe calculations in Node.js
         shell: bash
         run: |
