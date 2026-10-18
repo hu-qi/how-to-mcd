@@ -9,6 +9,7 @@
   <title>HowToMCD · 麦麦灵感，家里开做</title>
   <link rel="stylesheet" href="assets/app.css">
   <script src="assets/app.js" defer></script>
+  <script src="assets/shop.js" defer></script>
 </head>
 <body>
   <div class="ambient ambient-one" aria-hidden="true"></div>
@@ -22,6 +23,7 @@
       <nav aria-label="主导航" class="top-nav">
         <a class="active" href="#explore">探索食谱</a>
         <a href="#workbench">厨房工作台</a>
+        <a href="#official">官方菜单 · 点餐</a>
         <a href="#about">关于项目</a>
       </nav>
       <a class="github-link" href="https://github.com/hu-qi/how-to-mcd" target="_blank" rel="noopener noreferrer" aria-label="GitHub 开源仓库">
@@ -123,6 +125,88 @@
               <p class="mcp-hint" id="mcp-feedback" role="status">需要在本机服务端配置 MCD_MCP_TOKEN。Token 不发送到浏览器。</p>
             </div>
           </aside>
+        </div>
+      </section>
+
+
+      <section class="section-pad official-section" id="official" aria-labelledby="official-title">
+        <div class="section-heading">
+          <div><span class="section-kicker">03 / OFFICIAL DATA &amp; ORDERING</span>
+            <h2 id="official-title">今天不想做？<br>看看麦当劳真实餐品。</h2>
+            <p>官方营养资料与社区家庭做法分别展示；实时菜单和价格须按门店、取餐方式查询。</p>
+          </div>
+          <span class="section-tag">MCD OFFICIAL MCP · NO MOCKS</span>
+        </div>
+
+        <div class="panel nutrition-panel">
+          <span class="mini-label">OFFICIAL NUTRITION LIBRARY</span>
+          <h3>真实营养数据资料库</h3>
+          <p id="nutrition-meta" class="shop-note" role="status">正在读取官方 MCP 营养数据快照……</p>
+          <label class="shop-field">搜索真实餐品
+            <input type="search" id="nutrition-search" placeholder="汉堡、薯条、麦乐鸡……" autocomplete="off">
+          </label>
+          <div id="nutrition-products" class="nutrition-grid" aria-live="polite"></div>
+          <p class="shop-note">营养信息源于官方常见餐品列表，仅用于参考。不是全部门店实时在售列表，不代表任何社区复刻食谱的营养值。</p>
+        </div>
+
+        <div class="panel shop-panel">
+          <span class="mini-label">LIVE OFFICIAL MENU / PERSONAL SESSION</span>
+          <h3>连接个人 MCP Token · 选择真实门店点餐</h3>
+          <p class="shop-note">你的 Token 仅在当前页面内存中保留，不保存到浏览器存储、仓库或 GitHub Actions。公开 Pages 会尝试直接访问官方 MCP；若浏览器 CORS 不允许，请本地运行 <code>cargo run -- serve</code>，使用 Rust 安全桥接完成点餐。</p>
+
+          <form class="shop-connection" id="shop-connect">
+            <label class="shop-field">个人麦当劳 MCP Token
+              <input type="password" id="shop-token" autocomplete="off" spellcheck="false"
+                placeholder="粘贴你自己的 MCP Token（非 GitHub Actions Secret）" maxlength="2048" required>
+            </label>
+            <button type="submit" class="btn btn-primary">连接麦当劳 MCP ↗</button>
+          </form>
+          <button type="button" class="shop-item" id="shop-disconnect" hidden>断开连接并清除 Token</button>
+          <p id="shop-status" class="shop-note" role="status" aria-live="polite">未连接。点餐需要个人 Token，本站不会提取 GitHub Actions Secret。</p>
+
+          <div id="shop-controls" hidden>
+            <div class="shop-form-grid">
+              <label class="shop-field">取餐方式
+                <select id="shop-type"><option value="1">到店自取</option><option value="2">麦乐送到家</option></select>
+              </label>
+              <div id="shop-location-row" class="shop-form-grid shop-nested">
+                <label class="shop-field">城市<input id="shop-city" placeholder="如：广州市" maxlength="60"></label>
+                <label class="shop-field">位置关键词<input id="shop-keyword" placeholder="如：南沙区" maxlength="60"></label>
+              </div>
+              <div id="shop-address-row" class="shop-field" hidden>
+                <button class="shop-item" type="button" id="shop-addresses-load">从官方查询我的配送地址</button>
+                <select id="shop-address"><option value="">选择已有官方配送地址</option></select>
+              </div>
+            </div>
+            <div class="shop-actions">
+              <button type="button" class="shop-item shop-primary" id="shop-stores-load">查询官方可用门店</button>
+              <span class="shop-note">不自动读取定位；须先选择城市或已有配送地址。</span>
+            </div>
+            <div id="shop-stores" class="shop-store-list"></div>
+            <div class="shop-actions">
+              <strong id="shop-store-name">尚未选择门店</strong>
+              <button type="button" class="shop-item shop-primary" id="shop-menu-load">读取该门店所有可售餐品</button>
+            </div>
+            <div id="shop-detail" class="shop-detail" hidden></div>
+            <div id="shop-menu" class="shop-menu-list" aria-live="polite"></div>
+            <div class="shop-cart-box">
+              <h3>已选购的官方餐品</h3>
+              <div id="shop-cart">请先选择门店并添加商品。</div>
+              <button type="button" class="shop-item shop-primary" id="shop-price-load">向官方获取实时应付报价</button>
+              <div id="shop-quote" hidden>
+                <p>官方确认应付总额：<strong id="shop-price"></strong>（含优惠与配送费，以实时报价为准）</p>
+                <label class="shop-field" id="shop-takeway-row" hidden>官方取餐方式
+                  <select id="shop-takeway"><option value="">请先选择</option></select>
+                </label>
+                <label class="shop-agreement">
+                  <input type="checkbox" id="shop-confirm">
+                  我已核对门店、商品、数量、取餐或配送方式、报价，知悉点击下方按钮将创建真实订单。
+                </label>
+                <button type="button" class="btn btn-primary" id="shop-submit">确认创建真实订单（不自动支付）</button>
+              </div>
+              <div id="shop-payment" class="shop-payment" aria-live="polite"></div>
+            </div>
+          </div>
         </div>
       </section>
 
