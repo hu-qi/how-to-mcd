@@ -198,6 +198,22 @@
     }
   ];
 
+  // A related, fully quantified *community* recipe (not a product match).
+  // Some guide types (combos, water, unclassified products) intentionally
+  // have no matching standalone recipe. Never imply brand recipe accuracy.
+  const recipeByGuideId = Object.freeze({
+    fries:"crispy-fries", nuggets:"chicken-nuggets", wings:"chicken-wings",
+    "fried-chicken":"chicken-burger", fish:"fish-sandwich",
+    beef:"beef-burger", "sausage-egg":"breakfast-muffin",
+    wrap:"chicken-wrap", rice:"breakfast-porridge",
+    salad:"garden-salad", "apple-pie":"apple-turnover",
+    "ice-cream":"ice-cream-sundae", milkshake:"fruit-milkshake",
+    latte:"milk-latte", coffee:"drip-coffee", tea:"fruit-tea",
+    "hot-chocolate":"hot-cocoa", juice:"sparkling-lemonade",
+    corn:"steamed-corn", "hash-brown":"potato-hashbrown",
+    soup:"vegetable-soup", "cookie-cake":"oat-cookies",
+    "pie-dessert":"oat-cookies"
+  });
   // Order matters: specific products before generic '汉堡', '派', '咖啡', etc.
   function resolve(productName, categoryName = "") {
     const name = String(productName || "").slice(0, 200);
@@ -216,6 +232,7 @@
       productName: name,
       title: inferred.title,
       id: inferred.id,
+      relatedRecipeId: recipeByGuideId[inferred.id] || null,
       status: inferred.id === "other" ? "unknown" : "category",
       source: "社区非官方家庭参考；不是麦当劳商业配方，未经过本项目实测验证",
       ingredients: [...inferred.ingredients],
