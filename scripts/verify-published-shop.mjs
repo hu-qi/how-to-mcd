@@ -44,10 +44,25 @@ try {
   const productCount = await page.locator("#shop-menu .shop-product").count();
   assert.ok(productCount > 0, "Published page did not render genuine store menu");
   console.log(`PASS: real stores and ${productCount} official menu items rendered in live browser`);
+  const meta = await page.locator("#shop-menu-source").textContent();
+  assert.match(meta, /麦当劳中国官方 MCP/);
+  const firstName = (await page.locator("#shop-menu .shop-product strong").first().textContent()).trim();
+  await page.locator("#shop-menu-search").fill(firstName.slice(0, 2));
+  assert.ok(await page.locator("#shop-menu .shop-product").count() > 0);
+  await page.locator("#shop-menu-search").fill("不存在的菜品qqq");
+  assert.equal(await page.locator("#shop-menu .shop-product").count(), 0);
+  await page.locator("#shop-menu-clear").click();
+  assert.equal(await page.locator("#shop-menu .shop-product").count(), productCount);
+  assert.ok(await page.locator("#shop-menu-category option").count() > 1);
+  console.log("PASS: official menu search, empty state, category selector, and reset");
 
   // This only builds a local cart and requests a read-only price quote.
   await page.locator("#shop-menu .shop-product").first()
     .locator("button.shop-primary").click();
+  await page.locator("#shop-cart .shop-quantity button").last().click();
+  assert.equal(await page.locator("#shop-cart .shop-quantity-value").first().textContent(), "2");
+  await page.locator("#shop-cart .shop-quantity button").first().click();
+  assert.equal(await page.locator("#shop-cart .shop-quantity-value").first().textContent(), "1");
   await page.locator("#shop-price-load").click();
   await page.locator("#shop-quote").waitFor({ state: "visible", timeout: 90000 });
   const quote = await page.locator("#shop-price").textContent();
