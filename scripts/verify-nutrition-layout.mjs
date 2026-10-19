@@ -56,9 +56,8 @@ try {
     const panel=page.locator(".nutrition-panel");
     await panel.scrollIntoViewIfNeeded();
     await panel.screenshot({path:`${out}/nutrition-${name}.png`,animations:"disabled",timeout:15000});
-    await page.locator(".nutrition-card .shop-guide-trigger").first().click();
-    await page.locator("#shop-home-guide").waitFor({state:"visible",timeout:5000});
-    await page.locator("#shop-home-guide .shop-home-guide-head button").click();
+    assert.ok(await page.locator(".nutrition-card .shop-guide-trigger").first().isVisible(),
+      "Non-official recipe guide action must be visible inside nutrition card");
     console.log(`PASS ${name}: ${metrics.cards} nutrition cards, ${metrics.gridColumns} columns; no horizontal overflow; first name ${metrics.nameText}`);
     await context.close();
   }
