@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="assets/app.css">
   <script src="assets/app.js" defer></script>
   <script src="assets/home-guides.js" defer></script>
+  <script src="assets/nutrition-core.js" defer></script>
   <script src="assets/shop.js" defer></script>
 </head>
 <body>
@@ -118,12 +119,19 @@
               <p>专注模式逐条展示步骤，内置实用倒计时。注意用食品温度计确认熟度，计时不替代测温。</p>
               <div class="side-lines"><span>✓ 按人份精确换算</span><span>✓ 备料进度追踪</span><span>✓ 烹饪分步计时</span></div>
             </div>
+            <div class="panel quick-order-panel" aria-label="偷懒快速点餐入口">
+              <span class="mini-label">KITCHEN ESCAPE HATCH · 偷懒通道</span>
+              <h3>锅铲先下班，<br>嘴巴不加班。🍔</h3>
+              <p>今天不想当大厨？没关系，麦麦可以来救场。挑真菜单、查实时报价，剩下的交给你的胃。</p>
+              <a class="btn btn-primary quick-order-link" id="bench-quick-order" href="#official">不想做了，麦麦救场 ↗</a>
+              <small>使用个人 MCP Token · 不会自动下单或付款</small>
+            </div>
             <div class="panel mcp-panel">
               <div class="mcp-head"><span class="mini-label">OFFICIAL MCP BRIDGE</span><span id="mcp-status" class="mcp-status">检测中</span></div>
               <h3>真实菜单，真实数据。</h3>
-              <p>官方 MCP 提供餐品与营养信息；家庭食谱由社区独立创作，两种来源明确区分。</p>
+              <p>官方营养快照不用登录就能看；连接个人 MCP Token 后，还可以实时向官方查询。社区家庭食谱不是官方配方。</p>
               <button class="mcp-button" type="button" id="mcp-lookup">查询官方营养数据 <span aria-hidden="true">↗</span></button>
-              <p class="mcp-hint" id="mcp-feedback" role="status">需要在本机服务端配置 MCD_MCP_TOKEN。Token 不发送到浏览器。</p>
+              <p class="mcp-hint" id="mcp-feedback" role="status">公开快照可以直接查询；官方实时刷新需要个人 Token。</p>
             </div>
           </aside>
         </div>
@@ -143,6 +151,10 @@
           <span class="mini-label">OFFICIAL NUTRITION LIBRARY</span>
           <h3>真实营养数据资料库</h3>
           <p id="nutrition-meta" class="shop-note" role="status">正在读取官方 MCP 营养数据快照……</p>
+          <div class="nutrition-live-actions">
+            <button class="shop-item shop-primary" id="nutrition-live-refresh" type="button">用个人 Token 实时刷新官方营养 ↗</button>
+            <span id="nutrition-live-hint" class="shop-note" role="status">当前显示公开营养快照；实时更新请先连接下方的个人 MCP Token。</span>
+          </div>
           <label class="shop-field">搜索真实餐品
             <input type="search" id="nutrition-search" placeholder="汉堡、薯条、麦乐鸡……" autocomplete="off">
           </label>
