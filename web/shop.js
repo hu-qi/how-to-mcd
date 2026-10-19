@@ -222,7 +222,10 @@
   }
   function disconnect() {
     s.token = ""; s.mode = null; s.apiBase = ""; s.session = null; s.store = null;
-    s.cart.clear(); s.quote = null; s.menu = {}; s.addressId = "";
+    s.cart.clear(); s.quote = null; s.quoteArgs = null; s.menu = {}; s.menuCategories = []; s.addressId = "";
+    $("shop-menu-toolbar").hidden = true; $("shop-menu-source").hidden = true;
+    $("shop-store-name").textContent = "尚未选择门店";
+    $("shop-detail").hidden = true;
     $("shop-connect").hidden = false; $("shop-disconnect").hidden = true;
     $("shop-controls").hidden = true; $("shop-quote").hidden = true;
     clearNode($("shop-stores")); clearNode($("shop-menu")); clearNode($("shop-cart"));
@@ -234,6 +237,9 @@
     $("shop-menu-toolbar").hidden = true;
     $("shop-menu-source").hidden = true;
     clearNode($("shop-menu"));
+    $("shop-detail").hidden = true;
+    clearNode($("shop-payment"));
+    renderCart();
     $("shop-quote").hidden = true;
     $("shop-store-name").textContent = store.storeName || store.name || store.storeCode || store.storeNo;
     notice("已选择门店：" + (store.storeName || store.storeCode) + "；可以获取该门店的实时可售菜单。");
@@ -256,6 +262,15 @@
   }
   async function loadStores() {
     notice("正在查询官方门店……");
+    // Searching again invalidates any prior store, cart or quote.
+    s.store = null; s.cart.clear(); s.quote = null; s.quoteArgs = null;
+    s.menu = {}; s.menuCategories = [];
+    $("shop-quote").hidden = true;
+    $("shop-menu-toolbar").hidden = true; $("shop-menu-source").hidden = true;
+    $("shop-store-name").textContent = "尚未选择门店";
+    $("shop-detail").hidden = true;
+    clearNode($("shop-menu")); clearNode($("shop-payment"));
+    renderCart();
     const type = Number($("shop-type").value);
     s.type = type;
     let stores;
