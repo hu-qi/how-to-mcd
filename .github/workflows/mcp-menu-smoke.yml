@@ -12,6 +12,8 @@ on:
       - src/shop.rs
       - scripts/mcp-menu-verify.mjs
       - web/shop.js
+      - web/home-guides.js
+      - recipes/**
 
 permissions:
   contents: read
@@ -28,7 +30,7 @@ jobs:
         run: |
           node --input-type=module <<'EOF'
           import assert from 'node:assert/strict';
-          import { selectedStore, menuCounts } from './scripts/mcp-menu-verify.mjs';
+          import { selectedStore, menuCounts, menuGuideCoverage } from './scripts/mcp-menu-verify.mjs';
           assert.deepEqual(selectedStore([{storeCode:'test',beCode:'CN',businessStatus:true}]),
             {storeCode:'test',beCode:'CN',orderType:1,beType:1});
           assert.deepEqual(menuCounts({meals:{'100':{name:'fixture'}},categories:[{name:'fixture'}]}),
@@ -38,7 +40,13 @@ jobs:
           assert.equal(parseBusinessText('not valid {guidance}'), null);
           assert.deepEqual(selectedStore({ data: { storeList: [{storeCode:'nested',businessStatus:true}] } }),
             {storeCode:'nested',beCode:'',orderType:1,beType:1});
-          console.log('Read-only menu verifier fixture passed');
+          assert.deepEqual(menuGuideCoverage({
+            meals: {
+              x: {name:'麦乐鸡'}, y: {name:'不公开配方的新产品'},
+              z: {name:'矿泉水'}
+            }
+          }), {products:3,fullRecipe:1,categoryOnly:1,unknown:1});
+          console.log('Read-only menu verifier fixture and community coverage passed');
           EOF
       - name: Query genuine nearby stores and live menu (read-only)
         env:
