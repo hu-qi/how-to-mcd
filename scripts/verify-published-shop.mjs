@@ -14,6 +14,13 @@ const browser = await chromium.launch({ headless: true });
 try {
   const context = await browser.newContext({ serviceWorkers: "block" });
   const page = await context.newPage();
+  const mistakenHealthCalls = [];
+  page.on("request", request => {
+    const url = new URL(request.url());
+    if (url.hostname === "hu-qi.github.io" && url.pathname === "/api/health") {
+      mistakenHealthCalls.push(url.pathname);
+    }
+  });
   page.setDefaultTimeout(90000);
   await page.goto(site + "?ci-gateway-check=" + Date.now(), {
     waitUntil: "domcontentloaded", timeout: 45000
@@ -29,7 +36,9 @@ try {
   await page.locator("#shop-connect button[type=submit]").click();
   await page.locator("#shop-controls").waitFor({ state: "visible", timeout: 120000 });
   assert.match(await page.locator("#shop-status").textContent(), /独立 Rust HTTPS API/);
-  console.log("PASS: browser connected with personal token through hosted Rust gateway");
+  assert.equal(mistakenHealthCalls.length, 0,
+    "Static Pages must never query nonexistent https://hu-qi.github.io/api/health");
+  console.log("PASS: browser connected through hosted Rust gateway without Pages 404 API probes");
 
   await page.locator("#shop-city").fill("北京市");
   await page.locator("#shop-keyword").fill("朝阳区");
