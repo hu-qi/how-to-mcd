@@ -1,6 +1,8 @@
 // Strict, minimal read-only real-menu verification for GitHub Actions.
 // No public raw MCP response, token, addresses, account data or order details.
 import fs from "node:fs";
+import { createRequire } from "node:module";
+const homeGuides = createRequire(import.meta.url)("../web/home-guides.js");
 
 // Official MCP sometimes includes plain-language guidance before its JSON
 // response in the SAME text block. Scan for a complete valid business JSON
@@ -97,13 +99,33 @@ export function menuCounts(data) {
   return { productCount: products.length, categoryCount: (data.categories || []).length };
 }
 
+// Audits every REAL menu item, not merely the menu count. Only aggregated
+// counts appear in CI logs: no account data, addresses or individual products.
+export function menuGuideCoverage(data) {
+  const meals = data?.meals && typeof data.meals === "object" && !Array.isArray(data.meals)
+    ? Object.values(data.meals).filter(v => typeof v?.name === "string") : [];
+  const counters = {products: meals.length, fullRecipe: 0, categoryOnly: 0, unknown: 0};
+  for (const meal of meals) {
+    const resolved = homeGuides.resolve(meal.name);
+    if (resolved.status === "unknown") counters.unknown++;
+    else if (resolved.relatedRecipeId) counters.fullRecipe++;
+    else counters.categoryOnly++;
+  }
+  return counters;
+}
 const [mode, file] = process.argv.slice(2);
 if (mode === "stores") {
   process.stdout.write(JSON.stringify(selectedStore(result(file))));
 } else if (mode === "menu") {
-  const count = menuCounts(result(file));
+  const data = result(file);
+  const count = menuCounts(data);
+  const coverage = menuGuideCoverage(data);
   console.log("Official store real-menu query passed:", count.productCount,
     "products,", count.categoryCount, "categories. No private data logged.");
+  console.log("Home-cooking guide coverage (name-based, approximate):",
+    coverage.fullRecipe, "products linked to a complete community recipe,",
+    coverage.categoryOnly, "category guide only,",
+    coverage.unknown, "commercial recipes unknown.");
 } else if (process.argv[1]?.endsWith("mcp-menu-verify.mjs")) {
   throw Error("Expected: stores|menu <private-file>");
 }
