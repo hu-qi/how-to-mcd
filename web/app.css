@@ -59,3 +59,10 @@
 .shop-product .shop-original-price{text-decoration:line-through;color:#909f92}
 .shop-product .shop-offer-tag{display:inline-block;color:var(--lime);font-weight:700}
 @media(max-width:580px){.shop-official-image{width:70px;height:64px}}
+
+/* Itemized amounts are direct fields of the official calculate-price reply. */
+.shop-price-breakdown{display:grid;gap:7px;padding:13px 15px;margin:10px 0 16px;background:#122117;border:1px solid var(--line);border-radius:12px}
+.shop-price-breakdown:empty{display:none}
+.shop-price-line{display:flex;justify-content:space-between;gap:14px;font-size:12px;line-height:1.6}
+.shop-price-line strong{color:var(--lime);white-space:nowrap;font-variant-numeric:tabular-nums}
+.shop-price-line.shop-price-item{border-top:1px dashed var(--line);padding-top:7px;color:var(--muted)}
