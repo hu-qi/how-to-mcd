@@ -437,12 +437,24 @@
         orderType: s.type === 1 ? 1 : 2, beType: s.type
       });
       const details = $("shop-detail"); clearNode(details);
-      details.append(create("strong", "", productName(code) + " · 官方套餐组成"));
-      (data.rounds || []).forEach(round => {
-        const row = create("p", "", round.name + "：" + (round.choices || []).map(x => x.name).join("、"));
-        details.append(row);
-      });
-      if (!data.rounds?.length) details.append(create("p", "", "此商品没有返回可展开的套餐组成信息。"));
+      details.append(create("strong", "", (data.name || productName(code)) + " · 官方餐品详情"));
+      details.append(create("p", "shop-note",
+        "以下组成信息直接来自所选麦当劳门店，套餐替换和特制尚未接入购物清单；当前版本仅支持官方返回的基础商品编码。"));
+      const groups = [
+        ...(Array.isArray(data.rounds) ? data.rounds : []),
+        ...(Array.isArray(data.roundList) ? data.roundList : [])
+      ];
+      let shown = 0;
+      for (const group of groups.slice(0, 20)) {
+        const entries = group.choices || group.comboItemList || group.items || [];
+        const choices = Array.isArray(entries) ? entries.map(item =>
+          item.name || item.itemName || item.productName || (item.code ? "商品编号 " + item.code : null)
+        ).filter(Boolean) : [];
+        const title = group.name || (group.round != null ? "组合 " + group.round : "套餐组合");
+        details.append(create("p", "", title + (choices.length ? "：" + choices.join("、") : "（以官方返回为准）")));
+        shown++;
+      }
+      if (!shown) details.append(create("p", "", "官方未返回需要选配的套餐组成；此商品可能为单品。"));
       details.hidden = false;
       details.scrollIntoView({ behavior: "smooth", block: "nearest" });
     } catch (err) { notice(err.message); }
