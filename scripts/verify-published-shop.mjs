@@ -38,6 +38,17 @@ try {
     .waitFor({ state: "visible", timeout: 45000 });
   assert.match(await page.locator("#nutrition-meta").textContent(), /官方公开快照/);
   console.log("PASS: verified official nutrition snapshot accessible without a personal token");
+  // Regression: clicking the guide on a public nutrition card used to fill
+  // #shop-home-guide hidden inside #shop-controls, appearing to do nothing.
+  const guestGuide = page.locator("#nutrition-products .shop-guide-trigger").first();
+  assert.equal(await guestGuide.getAttribute("aria-controls"), "nutrition-home-guide");
+  assert.equal(await page.locator("#shop-controls").isVisible(), false);
+  await guestGuide.click();
+  await page.locator("#nutrition-home-guide").waitFor({ state:"visible" });
+  assert.ok(await page.locator("#nutrition-home-guide li").count() >= 2);
+  await page.locator("#nutrition-home-guide .shop-home-guide-head button").click();
+  await page.locator("#nutrition-home-guide").waitFor({state:"hidden"});
+  console.log("PASS: guest nutrition guide opens and closes visibly without MCP login");
   await page.locator("#bench-quick-order").click();
   assert.equal(new URL(page.url()).hash, "#official");
   console.log("PASS: playful workbench quick order navigates to official shop");
