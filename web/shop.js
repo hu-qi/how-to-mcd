@@ -45,6 +45,56 @@
     container.append(button);
   }
 
+  // Every real official item gets a usable, honest guide entry.
+  // This is NOT an official commercial formula, and unknown items do not
+  // acquire invented ingredients or cooking durations.
+  function showHomeGuide(productName, categoryName = "") {
+    const guide = window.HowToMCDGuides?.resolve(productName, categoryName);
+    if (!guide) return notice("家庭做法指南暂不可用，请刷新页面");
+    const root = $("shop-home-guide");
+    clearNode(root);
+    const head = create("div", "shop-home-guide-head");
+    head.append(create("span", "mini-label",
+      guide.status === "unknown" ? "配方未知 / 需要社区补充" : "按品类归纳 / 家庭烹饪参考"));
+    const close = create("button", "shop-item", "关闭 ×");
+    close.type = "button";
+    close.setAttribute("aria-label", "关闭家庭做法");
+    close.addEventListener("click", () => { root.hidden = true; });
+    head.append(close);
+    root.append(head);
+    root.append(create("h3", "", productName + " · " + guide.title));
+    root.append(create("p", "shop-note", guide.source));
+    if (guide.minutes !== null) root.append(create("p", "shop-note",
+      "家庭参考时长：约 " + guide.minutes + " 分钟；请根据实际食材和设备调整"));
+    const renderList = (title, items, ordered = false) => {
+      if (!items?.length) return;
+      root.append(create("h4", "", title));
+      const list = create(ordered ? "ol" : "ul", "shop-guide-list");
+      for (const item of items) list.append(create("li", "", item));
+      root.append(list);
+    };
+    renderList("建议准备的家庭食材（不是官方配料表）", guide.ingredients);
+    renderList("家庭厨具", guide.equipment);
+    renderList(guide.status === "unknown" ? "为什么暂不能提供专属配方" : "家庭参考步骤", guide.steps, true);
+    renderList("食品安全与配方局限", guide.safety);
+    if (guide.status === "unknown") {
+      const link = create("a", "shop-item", "帮助社区补齐经过验证的家庭食谱 ↗");
+      link.href = "https://github.com/hu-qi/how-to-mcd/issues";
+      link.target = "_blank"; link.rel = "noopener noreferrer";
+      root.append(link);
+    }
+    root.hidden = false;
+    root.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function addHomeGuide(container, productName, categoryName = "") {
+    const button = create("button", "shop-item shop-guide-trigger", "🍳 家庭做法 / 参考");
+    button.type = "button";
+    button.setAttribute("aria-label", "查看" + productName + "的非官方家庭做法参考");
+    button.addEventListener("click", () => showHomeGuide(productName, categoryName));
+    container.append(button);
+  }
+
   const safeHttpPay = href => {
     try {
       const u = new URL(href);
@@ -225,7 +275,7 @@
     s.cart.clear(); s.quote = null; s.quoteArgs = null; s.menu = {}; s.menuCategories = []; s.addressId = "";
     $("shop-menu-toolbar").hidden = true; $("shop-menu-source").hidden = true;
     $("shop-store-name").textContent = "尚未选择门店";
-    $("shop-detail").hidden = true;
+    $("shop-detail").hidden = true; $("shop-home-guide").hidden = true;
     $("shop-connect").hidden = false; $("shop-disconnect").hidden = true;
     $("shop-controls").hidden = true; $("shop-quote").hidden = true;
     clearNode($("shop-stores")); clearNode($("shop-menu")); clearNode($("shop-cart"));
@@ -237,7 +287,7 @@
     $("shop-menu-toolbar").hidden = true;
     $("shop-menu-source").hidden = true;
     clearNode($("shop-menu"));
-    $("shop-detail").hidden = true;
+    $("shop-detail").hidden = true; $("shop-home-guide").hidden = true;
     clearNode($("shop-payment"));
     renderCart();
     $("shop-quote").hidden = true;
@@ -268,7 +318,7 @@
     $("shop-quote").hidden = true;
     $("shop-menu-toolbar").hidden = true; $("shop-menu-source").hidden = true;
     $("shop-store-name").textContent = "尚未选择门店";
-    $("shop-detail").hidden = true;
+    $("shop-detail").hidden = true; $("shop-home-guide").hidden = true;
     clearNode($("shop-menu")); clearNode($("shop-payment"));
     renderCart();
     const type = Number($("shop-type").value);
@@ -317,7 +367,7 @@
     const filter = $("shop-menu-category").value;
     const categorized = new Set();
     let count = 0;
-    const showProduct = (code, tags = []) => {
+    const showProduct = (code, tags = [], categoryName = "") => {
       const info = s.menu[code];
       if (!info || typeof info.name !== "string") return;
       if (query && !(info.name + " " + code).toLocaleLowerCase().includes(query)) return;
@@ -376,6 +426,7 @@
         notice("已加入：" + info.name + " · " + (current + 1) + " 件；下单前须重新获取官方报价");
       });
       actions.append(details, add);
+      addHomeGuide(actions, info.name, categoryName);
       addHomeInspiration(actions, info.name);
       row.append(left, actions);
       root.append(row);
@@ -391,7 +442,7 @@
         if (!code || categorized.has(code)) continue;
         categorized.add(code);
         if (!visible) continue;
-        showProduct(code, item.tags);
+        showProduct(code, item.tags, category.name || "");
       }
     }
     // Items with no official category must remain discoverable in 'all'.
@@ -630,6 +681,7 @@
             p.sodium == null ? null : "钠 " + p.sodium + " mg"
           ].filter(Boolean).join(" · ")));
           card.append(info);
+          addHomeGuide(card, p.name);
           addHomeInspiration(card, p.name);
           root.append(card);
         });
@@ -653,7 +705,7 @@
       $("shop-menu-toolbar").hidden = true; $("shop-menu-source").hidden = true;
       clearNode($("shop-menu")); clearNode($("shop-stores")); clearNode($("shop-payment"));
       $("shop-store-name").textContent = "尚未选择门店";
-      $("shop-detail").hidden = true;
+      $("shop-detail").hidden = true; $("shop-home-guide").hidden = true;
       renderCart();
       $("shop-quote").hidden = true;
     });
