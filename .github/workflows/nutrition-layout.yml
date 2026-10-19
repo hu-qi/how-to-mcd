@@ -1,0 +1,52 @@
+name: Nutrition UI responsive layout
+on:
+  pull_request:
+    paths:
+      - web/app.css
+      - web/shop.js
+      - scripts/verify-nutrition-layout.mjs
+      - .github/workflows/nutrition-layout.yml
+  push:
+    branches: [main]
+    paths:
+      - web/app.css
+      - web/shop.js
+      - scripts/verify-nutrition-layout.mjs
+      - .github/workflows/nutrition-layout.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  actual-nutrition-layout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check nutrition UI module syntax
+        run: |
+          node --check web/shop.js
+          node --check scripts/verify-nutrition-layout.mjs
+      - name: Install isolated Chromium
+        run: |
+          mkdir -p /tmp/howtomcd-nutrition-layout
+          cd /tmp/howtomcd-nutrition-layout
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Test real public nutrition snapshot with candidate CSS and JS
+        env:
+          PLAYWRIGHT_PACKAGE_ROOT: /tmp/howtomcd-nutrition-layout/node_modules/playwright
+        run: node scripts/verify-nutrition-layout.mjs
+      - name: Save actual layout evidence (no token, order or private account)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nutrition-responsive-evidence
+          path: nutrition-layout-evidence/
+          if-no-files-found: warn
+          retention-days: 14
