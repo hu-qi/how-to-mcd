@@ -48,5 +48,6 @@ for (const name of ["", "🍔 限时新品", "奇怪型号 x3", "饮品-2026", "
   assert.ok(g.steps.length >= 2);
 }
 assert.equal(guides.resolve("未命名新品", "咖啡及饮品").id, "coffee");
+assert.equal(guides.resolve("未命名限时新品", "汉堡类").id, "other", "ambiguous burger category must not imply beef ingredients");
 assert.equal(guides.resolve("特别版超值套餐").id, "combo");
 console.log("PASS: 20+ community guide categories, official/non-official boundaries and unknown fallback verified.");
