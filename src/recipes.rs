@@ -23,7 +23,7 @@ pub struct Recipe {
     pub attribution: String,
 }
 
-const SOURCES: [(&str, &str); 7] = [
+const SOURCES: [(&str, &str); 23] = [
     ("chicken-burger", include_str!("../recipes/chicken-burger.json")),
     ("crispy-fries", include_str!("../recipes/crispy-fries.json")),
     ("chicken-nuggets", include_str!("../recipes/chicken-nuggets.json")),
@@ -31,6 +31,22 @@ const SOURCES: [(&str, &str); 7] = [
     ("fish-sandwich", include_str!("../recipes/fish-sandwich.json")),
     ("breakfast-muffin", include_str!("../recipes/breakfast-muffin.json")),
     ("apple-turnover", include_str!("../recipes/apple-turnover.json")),
+    ("chicken-wings", include_str!("../recipes/chicken-wings.json")),
+    ("chicken-wrap", include_str!("../recipes/chicken-wrap.json")),
+    ("potato-hashbrown", include_str!("../recipes/potato-hashbrown.json")),
+    ("steamed-corn", include_str!("../recipes/steamed-corn.json")),
+    ("ice-cream-sundae", include_str!("../recipes/ice-cream-sundae.json")),
+    ("milk-latte", include_str!("../recipes/milk-latte.json")),
+    ("hot-cocoa", include_str!("../recipes/hot-cocoa.json")),
+    ("oat-cookies", include_str!("../recipes/oat-cookies.json")),
+    ("breakfast-porridge", include_str!("../recipes/breakfast-porridge.json")),
+    ("garden-salad", include_str!("../recipes/garden-salad.json")),
+    ("fruit-tea", include_str!("../recipes/fruit-tea.json")),
+    ("fruit-milkshake", include_str!("../recipes/fruit-milkshake.json")),
+    ("sparkling-lemonade", include_str!("../recipes/sparkling-lemonade.json")),
+    ("vegetable-soup", include_str!("../recipes/vegetable-soup.json")),
+    ("drip-coffee", include_str!("../recipes/drip-coffee.json")),
+    ("banana-pancake", include_str!("../recipes/banana-pancake.json")),
 ];
 
 impl Recipe {
@@ -108,7 +124,7 @@ mod tests {
     #[test]
     fn validates_all_recipes() {
         let found = all().expect("valid recipes");
-        assert_eq!(found.len(), 7);
+        assert_eq!(found.len(), 23);
     }
 
     #[test]
