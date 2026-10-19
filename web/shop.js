@@ -284,6 +284,7 @@
       $("shop-disconnect").hidden = false;
       $("shop-connect").hidden = true;
       $("shop-controls").hidden = false;
+      onNutritionConnection();
       notice("已连接官方 MCP（" + (s.mode === "local" ? "本机 Rust API" : s.mode === "hosted" ? "独立 Rust HTTPS API" : "浏览器直连") + "）。Token 只保存在当前页面内存，关闭或刷新后清除。");
     } catch (err) {
       s.token = "";
@@ -291,6 +292,7 @@
       s.mode = null;
       s.apiBase = "";
       $("shop-connect").hidden = false;
+      onNutritionConnection();
       notice(err.message);
     }
   }
@@ -303,6 +305,7 @@
     $("shop-connect").hidden = false; $("shop-disconnect").hidden = true;
     $("shop-controls").hidden = true; $("shop-quote").hidden = true;
     clearNode($("shop-stores")); clearNode($("shop-menu")); clearNode($("shop-cart"));
+    onNutritionConnection();
     notice("连接已断开，个人 Token 已从页面内存清除。");
   }
   function setStore(store) {
@@ -678,46 +681,108 @@
       $("shop-submit").disabled = true; // no automatic repeated submissions
     }
   }
-  async function catalog() {
+  function displayNutrition(data, source = "公开快照") {
+    if (data.source !== "McDonald's China official MCP: list-nutrition-foods" ||
+        !Array.isArray(data.products) || data.products.length === 0) {
+      throw Error("营养记录的官方来源或内容验证失败");
+    }
+    s.nutritionCatalog = data;
+    s.nutritionSource = source;
+    const updated = new Date(data.generatedAt);
+    const timestamp = Number.isFinite(updated.getTime())
+      ? updated.toLocaleString("zh-CN", { hour12: false }) : "时间未知";
+    $("nutrition-meta").textContent = "麦当劳中国官方 MCP · " + source +
+      " · " + data.products.length + " 款营养记录 · " + timestamp +
+      "（非门店实时在售清单，也不是家庭食谱的营养值）";
+    renderNutrition();
+  }
+  function renderNutrition() {
     const root = $("nutrition-products");
+    clearNode(root);
+    const data = s.nutritionCatalog;
+    if (!data) return;
+    const query = $("nutrition-search").value.trim().toLocaleLowerCase();
+    const filtered = data.products.filter(p =>
+      typeof p.name === "string" && p.name.toLocaleLowerCase().includes(query));
+    // Avoid thousands of DOM nodes when browsing the full official catalogue.
+    for (const p of filtered.slice(0, 250)) {
+      const card = create("div", "shop-product");
+      const info = create("div");
+      info.append(create("strong", "", p.name));
+      info.append(create("small", "", [
+        p.energyKcal == null ? null : p.energyKcal + " kcal",
+        p.protein == null ? null : "蛋白质 " + p.protein + " g",
+        p.fat == null ? null : "脂肪 " + p.fat + " g",
+        p.sodium == null ? null : "钠 " + p.sodium + " mg"
+      ].filter(Boolean).join(" · ")));
+      card.append(info);
+      addHomeGuide(card, p.name);
+      addHomeInspiration(card, p.name);
+      root.append(card);
+    }
+    if (!filtered.length) root.append(create("p", "shop-note", "暂无符合条件的官方营养条目。"));
+    if (filtered.length > 250) root.append(create("p", "shop-note",
+      "结果过多，仅显示前 250 条；可输入餐品名称缩小范围。"));
+  }
+  async function catalog() {
     try {
       const response = await fetch("catalog/nutrition.json", { cache: "no-store" });
       if (!response.ok) throw Error("暂无已发布的官方营养快照");
       const data = await response.json();
-      if (data.source !== "McDonald's China official MCP: list-nutrition-foods")
-        throw Error("来源标记与官方 MCP 不一致");
-      const products = data.products || [];
-      $("nutrition-meta").textContent = "麦当劳中国官方 MCP · " + products.length +
-        " 款常见餐品 · 更新时间 " + new Date(data.generatedAt).toLocaleString("zh-CN") +
-        "（营养参考，不代表门店现售清单）";
-      const render = () => {
-        const query = $("nutrition-search").value.trim().toLowerCase();
-        clearNode(root);
-        const filtered = products.filter(p => p.name.toLowerCase().includes(query));
-        filtered.forEach(p => {
-          const card = create("div", "shop-product");
-          const info = create("div");
-          info.append(create("strong", "", p.name));
-          info.append(create("small", "", [
-            p.energyKcal == null ? null : p.energyKcal + " kcal",
-            p.protein == null ? null : "蛋白质 " + p.protein + " g",
-            p.fat == null ? null : "脂肪 " + p.fat + " g",
-            p.sodium == null ? null : "钠 " + p.sodium + " mg"
-          ].filter(Boolean).join(" · ")));
-          card.append(info);
-          addHomeGuide(card, p.name);
-          addHomeInspiration(card, p.name);
-          root.append(card);
-        });
-        if (!filtered.length) root.append(create("p", "", "暂无符合条件的官方营养条目。"));
-      };
-      $("nutrition-search").addEventListener("input", render);
-      render();
+      // A live response must never be overwritten by a late snapshot fetch.
+      if (s.nutritionSource === "实时查询") return;
+      displayNutrition(data, "官方公开快照");
     } catch (err) {
-      $("nutrition-meta").textContent = err.message + "。可在本机启动 Rust 服务，通过个人 Token 查询最新数据。";
+      $("nutrition-meta").textContent = err.message +
+        "。可先连接下方个人 Token，然后实时查询官方营养记录。";
     }
   }
+  function onNutritionConnection() {
+    $("nutrition-live-hint").textContent = s.token
+      ? "已连接个人 Token，可以实时向官方 MCP 获取最新营养记录。"
+      : "当前显示官方公开快照；实时查询请先连接下方的个人 MCP Token。";
+  }
+  async function refreshNutrition() {
+    if (!s.token) {
+      $("nutrition-live-hint").textContent = "请先在下方连接个人麦当劳 MCP Token，再点击实时刷新。";
+      $("shop-connect").scrollIntoView({ behavior: "smooth", block: "center" });
+      $("shop-token").focus({ preventScroll: true });
+      return null;
+    }
+    const button = $("nutrition-live-refresh");
+    if (button.disabled) return null;
+    button.disabled = true;
+    $("nutrition-live-hint").textContent = "正在通过个人 Token 查询麦当劳中国官方 MCP……";
+    try {
+      const data = await rpc("list-nutrition-foods");
+      const rows = window.HowToMCDNutrition?.extractRows(data);
+      if (!rows) throw Error("官方营养解析器未载入");
+      displayNutrition(rows, "实时查询");
+      $("nutrition-live-hint").textContent = "实时查询成功：" + rows.total +
+        " 款官方营养记录。数据只在当前页面内存中使用，不保存个人 Token。";
+      window.dispatchEvent(new CustomEvent("howtomcd:nutrition-updated", {
+        detail: { source: "live", total: rows.total }
+      }));
+      return rows;
+    } catch (err) {
+      $("nutrition-live-hint").textContent = "官方实时查询失败：" + err.message +
+        "；现有营养快照保持不变。";
+      throw err;
+    } finally {
+      button.disabled = false;
+    }
+  }
+  // Safe UI-only bridge: this API never returns, exposes or stores the token.
+  window.HowToMCDShop = Object.freeze({
+    connected: () => Boolean(s.token),
+    refreshNutrition,
+    displayNutrition
+  });
   document.addEventListener("DOMContentLoaded", () => {
+    $("nutrition-search").addEventListener("input", renderNutrition);
+    $("nutrition-live-refresh").addEventListener("click", () =>
+      refreshNutrition().catch(() => {})); // error already shown in the live hint
+    onNutritionConnection();
     catalog();
     $("shop-connect").addEventListener("submit", connect);
     $("shop-disconnect").addEventListener("click", disconnect);
