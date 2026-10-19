@@ -23,10 +23,14 @@ pub struct Recipe {
     pub attribution: String,
 }
 
-const SOURCES: [(&str, &str); 3] = [
+const SOURCES: [(&str, &str); 7] = [
     ("chicken-burger", include_str!("../recipes/chicken-burger.json")),
     ("crispy-fries", include_str!("../recipes/crispy-fries.json")),
     ("chicken-nuggets", include_str!("../recipes/chicken-nuggets.json")),
+    ("beef-burger", include_str!("../recipes/beef-burger.json")),
+    ("fish-sandwich", include_str!("../recipes/fish-sandwich.json")),
+    ("breakfast-muffin", include_str!("../recipes/breakfast-muffin.json")),
+    ("apple-turnover", include_str!("../recipes/apple-turnover.json")),
 ];
 
 impl Recipe {
@@ -104,7 +108,7 @@ mod tests {
     #[test]
     fn validates_all_recipes() {
         let found = all().expect("valid recipes");
-        assert_eq!(found.len(), 3);
+        assert_eq!(found.len(), 7);
     }
 
     #[test]

@@ -4,7 +4,7 @@
 
 **HowToMCD** 是用 **Rust** 开发的开源 AI 烹饪 Skill + CLI：通过麦当劳中国 **真实 MCP 服务**获取官方菜单与营养数据，再关联**社区独立原创**的家庭食谱，根据人数和厨具生成可执行烹饪建议。
 
-本项目不是麦当劳官方产品，不提供商业配方。官方 MCP 营养数据不等于社区自制餐品的营养数据；不下单、不支付，不处理会员数据。
+本项目不是麦当劳官方产品，不提供商业配方。官方 MCP 营养数据不等于社区自制餐品的营养数据；访客明确确认后可以调用官方创建订单接口，但本站不会自动付款。仅转发请求所需的个人 Token，不在服务端保存。
 
 ## 🚀 快速开始
 
@@ -22,7 +22,7 @@ cargo test
 cargo run -- validate
 ```
 
-三个独立设计的家庭食谱均包含食材数量、厨具、步骤、过敏原与食品安全提醒。鼓励社区实际动手验证后通过 PR 改进。
+七道独立设计的家庭食谱（鸡腿汉堡、薯条、鸡块、芝士牛肉汉堡、鱼柳堡、早餐蛋麦芬、苹果派）均包含食材数量、厨具、步骤、过敏原与食品安全提醒。它们是社区家庭做法参考，**不是麦当劳官方制作工艺，也不声称已经过真实厨房实测**；欢迎通过 PR 提供实测数据。
 
 ## 🖥️ 交互式 Rust 厨房工作台（新增）
 
@@ -85,9 +85,15 @@ GitHub Actions 的 [Rust WASM Demo and Pages](.github/workflows/wasm-pages.yml) 
 
 **实时菜单与下单**：输入自己的个人 Token → 按城市搜索取餐门店，或选择官方账户中的已有外送地址 → 使用 query-meals 获取该店可售餐品与分类 → query-meal-detail 看套餐组成 → 加入选购清单 → calculate-price 获取真正含配送费和优惠的报价 → 核对并确认 → 再次询价确保金额未变化 → create-order 创建真实订单并由用户进入麦当劳官方支付链接。不会自动付款。首期支持到店自取与麦乐送，尚不支持复杂套餐改配、预约与积分兑换。
 
-**公开 Pages 的技术边界**：GitHub Actions Secret 不会出现在 Pages 中，公开网页接受用户个人 Token 后仅在当前页面内存中处理；浏览器尝试直连麦当劳官方 https://mcp.mcd.cn 。如果官方 CORS 限制浏览器请求，会明确提示使用本地可信 Rust Web 服务：在仓库执行 cargo run -- serve，再访问 http://127.0.0.1:3000 ，通过仅监听环回地址的 Rust MCP 桥接使用实时点餐能力。这个功能在无本地服务的静态 Pages 上不能保证每个浏览器都能下单。
+**公开 Pages 与 Rust API 的正确地址**：
+- 网页：`https://hu-qi.github.io/how-to-mcd/`
+- **实际后端健康检查**：`https://how-to-mcd-api.vercel.app/api/health`
+- `https://hu-qi.github.io/api/health` 是错误地址，GitHub Pages 仅提供静态资源，不托管 Rust API，也不透传 `/api/*`。
+- Pages 编译 Rust/WASM 供家庭烹饪使用；真实门店菜单、查询和询价通过独立的 **Vercel Rust HTTPS API** 连接官方麦当劳 MCP。个人 Token 仅存在页面内存，通过 HTTPS 在每次请求中发送，不进入静态文件或 Actions 发布物；后端无持久 Token 存储，服务不可达时停止连接。GitHub Actions Secret 仅用于受保护的 CI 联调，不是公共访客的共享下单账户。
 
-当前对于官方鸡腿汉堡、麦乐鸡块和薯条相关条目，会显示对应的社区家庭做法入口；其他官方餐品只展示可核验数据，后续再由社区补充经过验证的做法。\n\n**烹饪方法来源**：家庭复刻食谱是社区独立创作，绝非官方商业制作工艺。没有独立编写验证的做法时仅展示官方商品信息，不杜撰所谓“官方烹饪方法”。
+**真实菜单体验**：登录个人 Token → 选择城市或官方配送地址 → 选择真实门店 → 展示官方该店在售分类和餐品 → **按商品名/编号搜索、按类别筛选** → 查看官方套餐详情 → 清单数量增减 → 官方最终价格查询 → 双重明确确认 → 重新核价并可提交实际订单。清单变动会使先前报价失效，支付操作始终需要用户进入官方页面自行完成。
+
+**家庭做法灵感**：实时菜单中可识别的薯条、鸡块、鸡腿堡、牛肉堡、鱼堡、早餐麦满分、苹果派等可跳转对应的社区原创家庭做法；未建立关联的官方商品只显示官方实际返回的信息，不杜撰所谓「官方商业配方」。全部实售商品量按门店和时段变化，不保证全国统一数量。
 
 ## 🔗 真实 McDonald's China MCP
 
@@ -104,7 +110,7 @@ cargo run -- mcp nutrition
 cargo run -- mcp call query-meals --args '{"storeCode":"<actual-store-code>","beCode":"<actual-be-code>"}'
 ```
 
-目前只允许调用三个只读工具：`list-nutrition-foods`、`query-meals`、`query-meal-detail`。代码默认使用 Rust `reqwest` 实现标准 Streamable HTTP / JSON-RPC（含协商、initialized 通知、工具发现、会话头及响应解析），同时保留 `rmcp` SDK 适配供兼容性调试；没有任何模拟 MCP 业务结果。
+通用 MCP 桥接只允许白名单只读工具，包括门店、菜单、餐品详情、营养与询价；具有副作用的 `create-order` 不允许通过通用桥接执行，仅在专用 checkout 路由经用户明确确认、重新核价一致后调用。代码默认使用 Rust `reqwest` 实现标准 Streamable HTTP / JSON-RPC（含协商、initialized 通知、工具发现、会话头及响应解析），同时保留 `rmcp` SDK 适配供兼容性调试；没有任何模拟 MCP 业务结果。
 
 - [MCP_INTEGRATION.md](MCP_INTEGRATION.md)：集成架构、调用流程及测试方法
 - [mcp-config.example.json](mcp-config.example.json)：仅包含环境变量占位符的 MCP 配置

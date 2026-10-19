@@ -9,8 +9,8 @@ const state = {
 };
 
 const byId = (id) => document.getElementById(id);
-const emojiFor = (id) => ({ "chicken-burger": "🍔", "crispy-fries": "🍟", "chicken-nuggets": "🍗" }[id] || "🍽️");
-const toneFor = (id) => ({ "chicken-burger": "tone-one", "crispy-fries": "tone-two", "chicken-nuggets": "tone-three" }[id] || "tone-one");
+const emojiFor = (id) => ({ "chicken-burger": "🍔", "crispy-fries": "🍟", "chicken-nuggets": "🍗", "beef-burger": "🧀", "fish-sandwich": "🐟", "breakfast-muffin": "🍳", "apple-turnover": "🥧" }[id] || "🍽️");
+const toneFor = (id) => ({ "chicken-burger": "tone-one", "crispy-fries": "tone-two", "chicken-nuggets": "tone-three", "beef-burger": "tone-two", "fish-sandwich": "tone-one", "breakfast-muffin": "tone-three", "apple-turnover": "tone-two" }[id] || "tone-one");
 const showMessage = (message) => { byId("mcp-feedback").textContent = message; };
 const formatAmount = (n) => Number.isInteger(n) ? String(n) : String(Number(n.toFixed(2)));
 
@@ -30,6 +30,9 @@ let provider = null;
 
 async function chooseProvider() {
   try {
+    // GitHub Pages cannot host /api/*; skip an unavoidable misleading 404
+    // and start the real Rust/WASM module directly on static hosting.
+    if (location.hostname.endsWith(".github.io")) throw Error("static GitHub Pages");
     await api("/api/health");
     return {
       mode: "native",
