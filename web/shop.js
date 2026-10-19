@@ -307,6 +307,7 @@
     s.cart.clear(); s.quote = null; s.quoteArgs = null; s.menu = {}; s.menuCategories = []; s.addressId = "";
     $("shop-menu-toolbar").hidden = true; $("shop-menu-source").hidden = true;
     $("shop-store-name").textContent = "尚未选择门店";
+    $("shop-menu-load").hidden = true;
     $("shop-detail").hidden = true; $("shop-home-guide").hidden = true;
     $("shop-connect").hidden = false; $("shop-disconnect").hidden = true;
     $("shop-controls").hidden = true; $("shop-quote").hidden = true;
@@ -325,6 +326,12 @@
     renderCart();
     $("shop-quote").hidden = true;
     $("shop-store-name").textContent = store.storeName || store.name || store.storeCode || store.storeNo;
+    $("shop-menu-load").hidden = false;
+    for (const button of $("shop-stores").querySelectorAll("button")) {
+      const selected = button.dataset.storeCode === String(s.store.storeCode);
+      button.classList.toggle("is-selected", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    }
     notice("已选择门店：" + (store.storeName || store.storeCode) + "；可以获取该门店的实时可售菜单。");
   }
   // Different official MCP scenarios return nested lists. Preserve the
@@ -351,6 +358,7 @@
     $("shop-quote").hidden = true;
     $("shop-menu-toolbar").hidden = true; $("shop-menu-source").hidden = true;
     $("shop-store-name").textContent = "尚未选择门店";
+    $("shop-menu-load").hidden = true;
     $("shop-detail").hidden = true; $("shop-home-guide").hidden = true;
     clearNode($("shop-menu")); clearNode($("shop-payment"));
     renderCart();
@@ -373,8 +381,10 @@
       clearNode(root);
       if (!s.stores.length) return notice("官方服务没有返回符合条件的门店，请调整城市或地址");
       s.stores.forEach(store => {
-        const button = create("button", "shop-item", store.storeName || store.name || store.storeCode);
+        const button = create("button", "shop-item shop-store-option", store.storeName || store.name || store.storeCode);
         button.type = "button";
+        button.dataset.storeCode = String(store.storeCode || store.storeNo || store.code || "");
+        button.setAttribute("aria-pressed", "false");
         button.addEventListener("click", () => setStore(store));
         root.append(button);
       });
@@ -404,8 +414,8 @@
       const info = s.menu[code];
       if (!info || typeof info.name !== "string") return;
       if (query && !(info.name + " " + code).toLocaleLowerCase().includes(query)) return;
-      const row = create("div", "shop-product");
-      const left = create("div");
+      const row = create("article", "shop-product shop-menu-card");
+      const left = create("div", "shop-product-info");
       left.append(create("strong", "", info.name));
       const priceText = info.currentPrice == null || info.currentPrice === ""
         ? "成交价以最终官方询价为准"
@@ -437,11 +447,12 @@
             image.alt = "官方餐品图片：" + info.name;
             image.loading = "lazy";
             image.decoding = "async";
+            row.classList.add("has-official-image");
             row.append(image);
           }
         }
       } catch (_) { /* missing/relative images are not synthesized */ }
-      const actions = create("div", "shop-actions");
+      const actions = create("div", "shop-actions shop-product-actions");
       const details = create("button", "shop-item", "查看详情");
       details.type = "button";
       details.addEventListener("click", () => loadDetail(code));
@@ -459,8 +470,9 @@
         notice("已加入：" + info.name + " · " + (current + 1) + " 件；下单前须重新获取官方报价");
       });
       actions.append(details, add);
+      // The detailed family guide already links to the matching full Rust
+      // recipe when available. Avoid a second, redundant CTA in each card.
       addHomeGuide(actions, info.name, categoryName);
-      addHomeInspiration(actions, info.name);
       row.append(left, actions);
       root.append(row);
       count++;
@@ -814,6 +826,7 @@
       $("shop-menu-toolbar").hidden = true; $("shop-menu-source").hidden = true;
       clearNode($("shop-menu")); clearNode($("shop-stores")); clearNode($("shop-payment"));
       $("shop-store-name").textContent = "尚未选择门店";
+      $("shop-menu-load").hidden = true;
       $("shop-detail").hidden = true; $("shop-home-guide").hidden = true;
       renderCart();
       $("shop-quote").hidden = true;

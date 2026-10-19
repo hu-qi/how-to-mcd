@@ -1,0 +1,52 @@
+name: Ordering UI responsive layout
+on:
+  pull_request:
+    paths:
+      - web/index.html
+      - web/app.css
+      - web/shop.js
+      - scripts/verify-shop-layout.mjs
+      - .github/workflows/shop-layout.yml
+  push:
+    branches: [main]
+    paths:
+      - web/index.html
+      - web/app.css
+      - web/shop.js
+      - scripts/verify-shop-layout.mjs
+      - .github/workflows/shop-layout.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  actual-shop-layout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate candidate browser syntax
+        run: |
+          node --check web/shop.js
+          node --check scripts/verify-shop-layout.mjs
+      - name: Install isolated Playwright Chromium
+        run: |
+          mkdir -p /tmp/howtomcd-shop-layout
+          cd /tmp/howtomcd-shop-layout
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Validate actual candidate layout with synthetic menu data only
+        env:
+          PLAYWRIGHT_PACKAGE_ROOT: /tmp/howtomcd-shop-layout/node_modules/playwright
+        run: node scripts/verify-shop-layout.mjs
+      - name: Upload screenshots (layout fixtures only, no real orders or tokens)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: official-shop-responsive-evidence
+          path: shop-layout-evidence/
+          if-no-files-found: warn
+          retention-days: 14
