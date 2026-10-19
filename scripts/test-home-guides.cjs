@@ -93,4 +93,39 @@ for (const unknown of ["不公开成分的新品", "限时神秘餐盒"]) {
     "unknown product must not hallucinate a complete recipe");
 }
 
+
+// Names below are PUBLIC menu product labels observed in the real read-only
+// official query, not account records. Fix classification without pretending
+// any of these are commercial formulas.
+const newlyIdentified = [
+  ["【美汁源】“多汁柠柠”","branded-juice"],
+  ["【美汁源】“黄金橙橙”","branded-juice"],
+  ["冰牛奶中杯","packaged-milk"],
+  ["纯牛奶(盒装)","packaged-milk"],
+  ["纯悦","branded-water"],
+  ["脆香油条","fried-dough"],
+  ["德式图林根香肠","sausage-wrap"],
+  ["灰焰圆筒","other"],
+  ["火腿扒早安营养卷","sausage-wrap"],
+  ["牛奶","packaged-milk"],
+  ["浓浓黑巧（冰/热）","black-cocoa"],
+  ["浓浓燕麦黑巧（冰/热）","oat-cocoa"],
+  ["图林根香肠早安营养卷","sausage-wrap"],
+  ["新地","ice-cream"],
+  ["旋旋星愿贴","nonfood"],
+  ["燕麦奶","packaged-milk"],
+  ["燕麦奶铁","oat-latte"],
+  ["一早现磨 超值二件套","combo"],
+  ["怡泉+C","branded-juice"],
+  ["优品豆浆","soy-drink"],
+  ["芝芝火腿扒堡","ham-burger"]
+];
+for (const [name, expected] of newlyIdentified) {
+  const result = guides.resolve(name);
+  assert.equal(result.id, expected, name + " must get a precise safe guide");
+  assert.ok(result.source.includes("非官方"));
+}
+assert.equal(newlyIdentified.filter(([name]) => guides.resolve(name).status === "unknown").length, 1,
+  "commercial formula may remain unknown for ambiguous non-food product");
+
 console.log("PASS: 23 canonical full Rust recipes, verified guide mapping, unknown fallback and food-safety notes.");
