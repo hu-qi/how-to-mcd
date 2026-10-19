@@ -31,6 +31,7 @@ jobs:
           cp web/index.html site/index.html
           cp web/app.js site/assets/app.js
           cp web/shop.js site/assets/shop.js
+          cp web/nutrition-core.js site/assets/nutrition-core.js
           cp web/home-guides.js site/assets/home-guides.js
           cp web/app.css site/assets/app.css
           touch site/.nojekyll
@@ -38,6 +39,8 @@ jobs:
           test -s site/pkg/howtomcd_wasm.js
           node --check site/assets/app.js
           node --check site/assets/shop.js
+          node --check site/assets/nutrition-core.js
+          node scripts/test-nutrition-core.cjs
           node --check site/assets/home-guides.js
           node scripts/test-home-guides.cjs
           node --input-type=module <<'EOF'
