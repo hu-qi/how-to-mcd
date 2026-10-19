@@ -204,7 +204,14 @@
     // Avoid treating a broad category as proof of the exact commercial formula.
     const category = String(categoryName || "").slice(0, 100);
     const matched = guides.find(g => g.id !== "other" && g.match.test(name));
-    const inferred = matched || guides.find(g => g.id !== "other" && g.match.test(category)) || guides[guides.length - 1];
+    // Only infer from *narrow, unambiguous* official categories. A generic
+    // category such as "汉堡" cannot justify guessing the meat is beef.
+    const safeCategoryIds = new Set([
+      "fries", "nuggets", "wings", "fish", "ice-cream", "coffee",
+      "tea", "corn", "hash-brown", "plain-water"
+    ]);
+    const categoryGuide = guides.find(g => safeCategoryIds.has(g.id) && g.match.test(category));
+    const inferred = matched || categoryGuide || guides[guides.length - 1];
     return {
       productName: name,
       title: inferred.title,
