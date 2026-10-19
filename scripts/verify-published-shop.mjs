@@ -54,6 +54,11 @@ try {
   await page.locator("#shop-menu-clear").click();
   assert.equal(await page.locator("#shop-menu .shop-product").count(), productCount);
   assert.ok(await page.locator("#shop-menu-category option").count() > 1);
+  await page.locator("#shop-menu-category").selectOption("0");
+  assert.equal(await page.locator("#shop-menu-category").inputValue(), "0");
+  assert.ok((await page.locator("#shop-menu .shop-product").count()) <= productCount);
+  await page.locator("#shop-menu-category").selectOption("all");
+  assert.equal(await page.locator("#shop-menu .shop-product").count(), productCount);
   console.log("PASS: official menu search, empty state, category selector, and reset");
 
   // This only builds a local cart and requests a read-only price quote.
