@@ -83,3 +83,14 @@
 .shop-guide-trigger:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
 @media(max-width:580px){.shop-home-guide{padding:17px}.shop-home-guide h3{font-size:17px}
 .shop-guide-list li{font-size:12px}}
+
+/* Quick-order escape hatch in the cooking workbench */
+.quick-order-panel{padding:23px;border:1px solid #c9ee7659;background:linear-gradient(145deg,#344d29,#182a21 75%);border-radius:15px}
+.quick-order-panel h3{font-size:clamp(22px,2.4vw,29px);line-height:1.22;margin:14px 0 12px}
+.quick-order-panel p{font-size:13px;line-height:1.85;color:var(--text);opacity:.88;margin:0 0 18px}
+.quick-order-link{display:inline-flex;max-width:100%;align-items:center;justify-content:center;text-align:center;white-space:normal}
+.quick-order-panel small{display:block;color:var(--muted);font-size:11px;margin-top:12px;line-height:1.7}
+.nutrition-live-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:14px 0 20px}
+.nutrition-live-actions .shop-note{flex:1;min-width:220px;margin:0}
+.nutrition-live-actions .shop-item{flex-shrink:0}
+@media(max-width:640px){.quick-order-panel{padding:19px}.quick-order-link{width:100%}.nutrition-live-actions{align-items:stretch}.nutrition-live-actions .shop-item{width:100%;text-align:center}}
