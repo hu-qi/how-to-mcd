@@ -181,7 +181,7 @@
           <p id="shop-status" class="shop-note" role="status" aria-live="polite">未连接。点餐需要个人 Token，本站不会提取 GitHub Actions Secret。</p>
 
           <div id="shop-controls" hidden>
-            <div class="shop-form-grid">
+            <div class="shop-form-grid shop-location-fields">
               <label class="shop-field">取餐方式
                 <select id="shop-type"><option value="1">到店自取</option><option value="2">麦乐送到家</option></select>
               </label>
@@ -194,14 +194,14 @@
                 <select id="shop-address"><option value="">选择已有官方配送地址</option></select>
               </div>
             </div>
-            <div class="shop-actions">
+            <div class="shop-actions shop-store-search-actions">
               <button type="button" class="shop-item shop-primary" id="shop-stores-load">查询官方可用门店</button>
               <span class="shop-note">不自动读取定位；须先选择城市或已有配送地址。</span>
             </div>
             <div id="shop-stores" class="shop-store-list"></div>
-            <div class="shop-actions">
+            <div class="shop-actions shop-selected-store">
               <strong id="shop-store-name">尚未选择门店</strong>
-              <button type="button" class="shop-item shop-primary" id="shop-menu-load">读取该门店所有可售餐品</button>
+              <button type="button" class="shop-item shop-primary" id="shop-menu-load" hidden>读取该门店所有可售餐品</button>
             </div>
             <div class="shop-menu-toolbar" id="shop-menu-toolbar" hidden>
               <label class="shop-field">查找官方在售餐品
@@ -217,7 +217,7 @@
             <div id="shop-detail" class="shop-detail" hidden></div>
             <section id="shop-home-guide" class="shop-home-guide" role="region"
               aria-label="社区家庭做法参考" aria-live="polite" tabindex="-1" hidden></section>
-            <div id="shop-menu" class="shop-menu-list" aria-live="polite"></div>
+            <div id="shop-menu" class="shop-menu-list" aria-label="官方在售餐品" aria-live="polite"></div>
             <div class="shop-cart-box">
               <h3>已选购的官方餐品</h3>
               <p class="shop-note">可调整每款餐品数量；任何改动都会清除先前报价，须重新向官方询价。</p>
