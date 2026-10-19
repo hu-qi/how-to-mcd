@@ -48,10 +48,12 @@
   // Every real official item gets a usable, honest guide entry.
   // This is NOT an official commercial formula, and unknown items do not
   // acquire invented ingredients or cooking durations.
-  function showHomeGuide(productName, categoryName = "") {
+  function showHomeGuide(productName, categoryName = "", outletId = "shop-home-guide") {
     const guide = window.HowToMCDGuides?.resolve(productName, categoryName);
-    if (!guide) return notice("家庭做法指南暂不可用，请刷新页面");
-    const root = $("shop-home-guide");
+    const root = $(outletId);
+    if (!guide || !root) return notice("家庭做法指南暂不可用，请刷新页面");
+    // Nutrition is public and does not require a shopping session. Never
+    // render its guide inside hidden #shop-controls (requires personal token).
     clearNode(root);
     const head = create("div", "shop-home-guide-head");
     head.append(create("span", "mini-label",
@@ -108,14 +110,18 @@
       root.append(link);
     }
     root.hidden = false;
-    root.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    // Focus makes the content discoverable for keyboard and screen readers,
+    // and scrolls to the visible panel even inside a long nutrition list.
+    root.focus({ preventScroll: true });
+    root.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function addHomeGuide(container, productName, categoryName = "") {
+  function addHomeGuide(container, productName, categoryName = "", outletId = "shop-home-guide") {
     const button = create("button", "shop-item shop-guide-trigger", "🍳 家庭做法 / 参考");
     button.type = "button";
     button.setAttribute("aria-label", "查看" + productName + "的非官方家庭做法参考");
-    button.addEventListener("click", () => showHomeGuide(productName, categoryName));
+    button.setAttribute("aria-controls", outletId);
+    button.addEventListener("click", () => showHomeGuide(productName, categoryName, outletId));
     container.append(button);
   }
 
@@ -729,7 +735,7 @@
       info.append(stats);
       card.append(info);
       const actions = create("div", "nutrition-card-actions");
-      addHomeGuide(actions, p.name);
+      addHomeGuide(actions, p.name, "", "nutrition-home-guide");
       addHomeInspiration(actions, p.name);
       card.append(actions);
       root.append(card);
