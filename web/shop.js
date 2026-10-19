@@ -385,6 +385,7 @@
       const category = s.menuCategories[i];
       const title = category.name || "餐品";
       const visible = filter === "all" || filter === String(i);
+      if (!visible) continue; // Do not hide products shared with other categories.
       for (const item of Array.isArray(category.meals) ? category.meals : []) {
         const code = String(item.code || item.productCode || "");
         if (!code || categorized.has(code)) continue;
