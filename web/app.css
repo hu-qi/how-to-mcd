@@ -94,3 +94,100 @@
 .nutrition-live-actions .shop-note{flex:1;min-width:220px;margin:0}
 .nutrition-live-actions .shop-item{flex-shrink:0}
 @media(max-width:640px){.quick-order-panel{padding:19px}.quick-order-link{width:100%}.nutrition-live-actions{align-items:stretch}.nutrition-live-actions .shop-item{width:100%;text-align:center}}
+
+/* Official nutrition catalogue: vertically composed cards, never horizontal
+   shop rows. Prevent action buttons from squeezing Chinese product labels into
+   one-character-wide columns (repro: 猪柳蛋麦满分 at desktop 1270px). */
+.nutrition-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+  align-items:start;
+  max-height:620px;
+  overflow-x:hidden;
+  overflow-y:auto;
+  scrollbar-gutter:stable;
+}
+.nutrition-grid .nutrition-card{
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  justify-content:flex-start;
+  gap:14px;
+  width:100%;
+  min-width:0;
+  margin:0;
+  padding:18px 20px;
+}
+.nutrition-card .nutrition-card-info{
+  flex:none;
+  width:100%;
+  min-width:0;
+  overflow-wrap:break-word;
+  word-break:normal;
+}
+.nutrition-card .nutrition-product-name{
+  font-size:16px;
+  font-weight:750;
+  line-height:1.55;
+  color:var(--text);
+  overflow-wrap:break-word;
+  word-break:normal;
+}
+.nutrition-stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.nutrition-stat{
+  display:inline-flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  gap:3px;
+  min-width:88px;
+  flex:1 1 88px;
+  max-width:calc(50% - 4px);
+  padding:8px 10px;
+  border:1px solid var(--line);
+  background:#182a20;
+  border-radius:9px;
+}
+.nutrition-stat-label{color:var(--muted);font-size:11px;line-height:1.3}
+.nutrition-card .nutrition-stat-value{
+  font-size:13px;
+  font-variant-numeric:tabular-nums;
+  line-height:1.5;
+  white-space:nowrap;
+}
+.nutrition-card-actions{
+  display:flex;
+  width:100%;
+  min-width:0;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:auto;
+}
+.nutrition-grid .nutrition-card .nutrition-card-actions>.shop-item{
+  box-sizing:border-box;
+  display:inline-flex;
+  flex:1 1 185px;
+  justify-content:center;
+  align-items:center;
+  width:auto;
+  min-width:0;
+  max-width:100%;
+  white-space:normal;
+  overflow-wrap:break-word;
+  word-break:normal;
+  text-align:center;
+  font-size:12px;
+  line-height:1.5;
+  padding:10px 12px;
+}
+.nutrition-grid .shop-note{grid-column:1/-1}
+@media(max-width:880px){
+  .nutrition-grid{grid-template-columns:1fr}
+}
+@media(max-width:510px){
+  .nutrition-grid .nutrition-card{padding:14px}
+  .nutrition-stats{gap:6px}
+  .nutrition-stat{min-width:0;flex:1 1 calc(50% - 6px);max-width:calc(50% - 3px)}
+  .nutrition-grid .nutrition-card .nutrition-card-actions>.shop-item{flex-basis:100%}
+}

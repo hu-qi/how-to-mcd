@@ -706,18 +706,32 @@
       typeof p.name === "string" && p.name.toLocaleLowerCase().includes(query));
     // Avoid thousands of DOM nodes when browsing the full official catalogue.
     for (const p of filtered.slice(0, 250)) {
-      const card = create("div", "shop-product");
-      const info = create("div");
-      info.append(create("strong", "", p.name));
-      info.append(create("small", "", [
-        p.energyKcal == null ? null : p.energyKcal + " kcal",
-        p.protein == null ? null : "蛋白质 " + p.protein + " g",
-        p.fat == null ? null : "脂肪 " + p.fat + " g",
-        p.sodium == null ? null : "钠 " + p.sodium + " mg"
-      ].filter(Boolean).join(" · ")));
+      // Nutrition entries use a vertical card layout. Generic shop-product
+      // styles use a horizontal flex row, which previously squeezed text into
+      // single-character columns beside multiple action buttons.
+      const card = create("article", "shop-product nutrition-card");
+      const info = create("div", "nutrition-card-info");
+      info.append(create("strong", "nutrition-product-name", p.name));
+      const stats = create("div", "nutrition-stats");
+      const values = [
+        ["热量", p.energyKcal, "kcal"],
+        ["蛋白质", p.protein, "g"],
+        ["脂肪", p.fat, "g"],
+        ["钠", p.sodium, "mg"]
+      ];
+      for (const [label, value, unit] of values) {
+        if (value == null || !Number.isFinite(Number(value))) continue;
+        const stat = create("span", "nutrition-stat");
+        stat.append(create("span", "nutrition-stat-label", label));
+        stat.append(create("strong", "nutrition-stat-value", value + " " + unit));
+        stats.append(stat);
+      }
+      info.append(stats);
       card.append(info);
-      addHomeGuide(card, p.name);
-      addHomeInspiration(card, p.name);
+      const actions = create("div", "nutrition-card-actions");
+      addHomeGuide(actions, p.name);
+      addHomeInspiration(actions, p.name);
+      card.append(actions);
       root.append(card);
     }
     if (!filtered.length) root.append(create("p", "shop-note", "暂无符合条件的官方营养条目。"));
