@@ -53,3 +53,9 @@
 .shop-menu-toolbar[hidden],#shop-menu-source[hidden]{display:none}
 @media(max-width:720px){.shop-menu-toolbar{grid-template-columns:1fr 1fr}.shop-menu-toolbar .shop-field:first-child{grid-column:1/-1}.shop-menu-toolbar .shop-note{grid-column:1/-1}}
 @media(max-width:440px){.shop-menu-toolbar{grid-template-columns:1fr}.shop-menu-toolbar .shop-field:first-child,.shop-menu-toolbar .shop-note{grid-column:auto}.shop-menu-toolbar .shop-item{width:100%}}
+
+/* Only use actual official menu fields for pictures and promotional prices. */
+.shop-official-image{width:92px;height:82px;object-fit:contain;background:#fff;border-radius:9px;flex-shrink:0}
+.shop-product .shop-original-price{text-decoration:line-through;color:#909f92}
+.shop-product .shop-offer-tag{display:inline-block;color:var(--lime);font-weight:700}
+@media(max-width:580px){.shop-official-image{width:70px;height:64px}}
