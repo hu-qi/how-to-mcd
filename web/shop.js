@@ -11,7 +11,7 @@
   };
   const s = {
     token: "", mode: null, apiBase: "", session: null, type: 1,
-    store: null, stores: [], menu: {}, cart: new Map(),
+    store: null, stores: [], menu: {}, menuCategories: [], cart: new Map(),
     addressId: "", addresses: [], quote: null, quoteArgs: null
   };
   const notice = msg => { $("shop-status").textContent = msg; };
@@ -20,9 +20,14 @@
   const money = cents => "¥" + (Number(cents) / 100).toFixed(2);
   // Community-inspired methods, NEVER described as official McDonald's recipes.
   const homeInspiration = name => {
-    if (/薯条/.test(name)) return { search: "薯条", label: "家庭薯条" };
-    if (/麦乐鸡|鸡块/.test(name)) return { search: "鸡块", label: "家庭鸡块" };
-    if (/鸡腿堡|鸡腿汉堡/.test(name)) return { search: "鸡腿", label: "家庭鸡腿汉堡" };
+    // Suggestions are original home recipes, NEVER official product formulas.
+    if (/薯条/.test(name)) return { search: "土豆", label: "家庭土豆条" };
+    if (/麦乐鸡|鸡块/.test(name)) return { search: "香酥鸡块", label: "家庭鸡块" };
+    if (/鸡腿堡|鸡腿汉堡|板烧/.test(name)) return { search: "鸡腿", label: "家庭鸡腿汉堡" };
+    if (/麦香鱼|鱼柳堡|鱼堡/.test(name)) return { search: "鱼柳", label: "家庭鱼柳堡" };
+    if (/巨无霸|吉士|牛肉堡|牛肉汉堡/.test(name)) return { search: "牛肉", label: "家庭牛肉汉堡" };
+    if (/麦满分|早餐麦芬/.test(name)) return { search: "麦芬", label: "家庭早餐麦芬" };
+    if (/苹果派/.test(name)) return { search: "苹果派", label: "家庭苹果派" };
     return null;
   };
   function addHomeInspiration(container, name) {
@@ -222,7 +227,10 @@
   }
   function setStore(store) {
     s.store = { ...store, storeCode: store.storeCode || store.storeNo || store.code,
-      beCode: store.beCode || store.businessEntityCode || "" }; s.cart.clear(); s.quote = null; s.menu = {};
+      beCode: store.beCode || store.businessEntityCode || "" }; s.cart.clear(); s.quote = null; s.quoteArgs = null; s.menu = {}; s.menuCategories = [];
+    $("shop-menu-toolbar").hidden = true;
+    $("shop-menu-source").hidden = true;
+    clearNode($("shop-menu"));
     $("shop-quote").hidden = true;
     $("shop-store-name").textContent = store.storeName || store.name || store.storeCode || store.storeNo;
     notice("已选择门店：" + (store.storeName || store.storeCode) + "；可以获取该门店的实时可售菜单。");
@@ -284,6 +292,68 @@
       notice("已查询到 " + list.length + " 个已有官方配送地址；不会在本站保存地址。");
     } catch (err) { notice(err.message); }
   }
+  function renderMenu() {
+    const root = $("shop-menu");
+    clearNode(root);
+    const query = $("shop-menu-search").value.trim().toLocaleLowerCase();
+    const filter = $("shop-menu-category").value;
+    const categorized = new Set();
+    let count = 0;
+    const showProduct = (code, tags = []) => {
+      const info = s.menu[code];
+      if (!info || typeof info.name !== "string") return;
+      if (query && !(info.name + " " + code).toLocaleLowerCase().includes(query)) return;
+      const row = create("div", "shop-product");
+      const left = create("div");
+      left.append(create("strong", "", info.name));
+      const priceText = info.currentPrice == null || info.currentPrice === ""
+        ? "成交价以最终官方询价为准"
+        : "门店显示价格：" + String(info.currentPrice) + "（最终以官方询价为准）";
+      left.append(create("small", "", "商品编号 " + code + " · " + priceText));
+      if (Array.isArray(tags) && tags.length) left.append(create("small", "", tags.join(" · ")));
+      const actions = create("div", "shop-actions");
+      const details = create("button", "shop-item", "查看详情");
+      details.type = "button";
+      details.addEventListener("click", () => loadDetail(code));
+      const add = create("button", "shop-item shop-primary", "加入清单 +");
+      add.type = "button";
+      add.setAttribute("aria-label", "加入清单：" + info.name);
+      add.addEventListener("click", () => {
+        if (!s.cart.has(code) && s.cart.size >= 20) return notice("最多选择 20 种餐品，请先调整清单");
+        const current = s.cart.get(code) || 0;
+        if (current >= 20) return notice("每款商品最多选择 20 件");
+        s.cart.set(code, current + 1);
+        s.quote = null; s.quoteArgs = null;
+        $("shop-quote").hidden = true;
+        renderCart();
+        notice("已加入：" + info.name + " · " + (current + 1) + " 件；下单前须重新获取官方报价");
+      });
+      actions.append(details, add);
+      addHomeInspiration(actions, info.name);
+      row.append(left, actions);
+      root.append(row);
+      count++;
+    };
+    for (let i = 0; i < s.menuCategories.length; i++) {
+      const category = s.menuCategories[i];
+      const title = category.name || "餐品";
+      const visible = filter === "all" || filter === String(i);
+      for (const item of Array.isArray(category.meals) ? category.meals : []) {
+        const code = String(item.code || item.productCode || "");
+        if (!code || categorized.has(code)) continue;
+        categorized.add(code);
+        if (!visible) continue;
+        showProduct(code, item.tags);
+      }
+    }
+    // Items with no official category must remain discoverable in 'all'.
+    if (filter === "all") for (const code of Object.keys(s.menu)) {
+      if (!categorized.has(code)) showProduct(code);
+    }
+    $("shop-menu-count").textContent = "显示 " + count + " / " +
+      Object.keys(s.menu).length + " 款该门店官方在售餐品";
+    if (!count) root.append(create("p", "shop-note", "没有符合条件的餐品，可更改关键词或选择全部分类。"));
+  }
   async function loadMenu() {
     if (!s.store) return notice("请先选择门店");
     notice("正在读取该门店、该取餐方式下的实时菜单……");
@@ -293,45 +363,23 @@
         orderType: s.type === 1 ? 1 : 2, beType: s.type
       });
       s.menu = data.meals || {};
-      const root = $("shop-menu");
-      clearNode(root);
+      s.menuCategories = Array.isArray(data.categories) ? data.categories : [];
       if (!Object.keys(s.menu).length) return notice("官方门店当前没有返回可售商品");
-      const categories = Array.isArray(data.categories) ? data.categories : [];
-      const categorized = new Set();
-      const showProduct = (code, item) => {
-        const info = s.menu[code];
-        if (!info) return;
-        const row = create("div", "shop-product");
-        const left = create("div");
-        left.append(create("strong", "", info.name || code));
-        left.append(create("small", "", code + " · 参考价 " + (info.currentPrice || "以官方报价为准")));
-        if (item.tags?.length) left.append(create("small", "", item.tags.join(" · ")));
-        const actions = create("div", "shop-actions");
-        const details = create("button", "shop-item", "详情");
-        details.type = "button";
-        details.addEventListener("click", () => loadDetail(code));
-        const add = create("button", "shop-item shop-primary", "加入清单 +");
-        add.type = "button";
-        add.addEventListener("click", () => {
-          s.cart.set(code, Math.min(20, (s.cart.get(code) || 0) + 1));
-          s.quote = null; $("shop-quote").hidden = true;
-          renderCart();
-        });
-        actions.append(details, add);
-        addHomeInspiration(actions, info.name || "");
-        row.append(left, actions); root.append(row);
-      };
-      categories.forEach(category => {
-        root.append(create("h3", "shop-category", category.name || "餐品"));
-        (category.meals || []).forEach(item => {
-          if (!item.code || categorized.has(item.code)) return;
-          categorized.add(item.code); showProduct(item.code, item);
-        });
+      const select = $("shop-menu-category");
+      clearNode(select);
+      select.append(new Option("全部分类", "all"));
+      s.menuCategories.forEach((category, index) => {
+        select.append(new Option(category.name || "餐品 " + (index + 1), String(index)));
       });
-      Object.keys(s.menu).forEach(code => {
-        if (!categorized.has(code)) showProduct(code, {});
-      });
-      notice("已获取官方门店实时菜单，共 " + Object.keys(s.menu).length + " 款商品，价格与库存以最终官方报价为准。");
+      $("shop-menu-search").value = "";
+      $("shop-menu-toolbar").hidden = false;
+      const source = $("shop-menu-source");
+      source.hidden = false;
+      source.textContent = "数据来源：麦当劳中国官方 MCP · 当前门店实时菜单 · 查询时间 " +
+        new Date().toLocaleString("zh-CN") + " · 不代表全国所有门店";
+      renderMenu();
+      notice("获取成功：本门店 " + Object.keys(s.menu).length +
+        " 款餐品、" + s.menuCategories.length + " 个分类；价格以官方最终询价为准。");
     } catch (err) { notice(err.message); }
   }
   async function loadDetail(code) {
@@ -352,19 +400,39 @@
     } catch (err) { notice(err.message); }
   }
   function renderCart() {
-    const root = $("shop-cart"); clearNode(root);
+    const root = $("shop-cart");
+    clearNode(root);
     s.cart.forEach((quantity, code) => {
-      const row = create("div", "shop-product");
-      row.append(create("span", "", productName(code) + " × " + quantity));
-      const remove = create("button", "shop-item", "减 1");
-      remove.type = "button";
-      remove.addEventListener("click", () => {
-        if (quantity <= 1) s.cart.delete(code); else s.cart.set(code, quantity - 1);
-        s.quote = null; $("shop-quote").hidden = true; renderCart();
-      });
-      row.append(remove); root.append(row);
+      const row = create("div", "shop-product shop-cart-line");
+      row.append(create("strong", "", productName(code)));
+      const buttons = create("div", "shop-quantity");
+      const minus = create("button", "shop-item", "−");
+      minus.type = "button";
+      minus.setAttribute("aria-label", "减少 " + productName(code) + " 数量");
+      minus.addEventListener("click", () => changeQuantity(code, -1));
+      const value = create("span", "shop-quantity-value", String(quantity));
+      const plus = create("button", "shop-item", "+");
+      plus.type = "button";
+      plus.setAttribute("aria-label", "增加 " + productName(code) + " 数量");
+      plus.addEventListener("click", () => changeQuantity(code, 1));
+      buttons.append(minus, value, plus);
+      row.append(buttons);
+      root.append(row);
     });
-    if (!s.cart.size) root.append(create("p", "", "还没有选购商品"));
+    if (!s.cart.size) root.append(create("p", "shop-note", "还没有选购商品，请从真实菜单加入。"));
+    else root.append(create("p", "shop-note", "共 " +
+      [...s.cart.values()].reduce((sum, n) => sum + n, 0) + " 件商品，" +
+      s.cart.size + " 个品种。"));
+  }
+  function changeQuantity(code, delta) {
+    const current = s.cart.get(code) || 0;
+    const next = current + delta;
+    if (next <= 0) s.cart.delete(code);
+    else s.cart.set(code, Math.min(next, 20));
+    s.quote = null; s.quoteArgs = null;
+    $("shop-quote").hidden = true;
+    renderCart();
+    notice("清单已变化，原报价已作废，请重新向官方询价。");
   }
   function cartArgs() {
     if (!s.store || !s.cart.size) throw Error("请选择门店并添加商品");
@@ -497,13 +565,21 @@
       s.type = Number(event.target.value);
       $("shop-location-row").hidden = s.type === 2;
       $("shop-address-row").hidden = s.type !== 2;
-      s.store = null; s.cart.clear(); s.quote = null;
+      s.store = null; s.cart.clear(); s.quote = null; s.quoteArgs = null; s.menu = {}; s.menuCategories = [];
+      $("shop-menu-toolbar").hidden = true; $("shop-menu-source").hidden = true;
       clearNode($("shop-menu")); clearNode($("shop-cart")); clearNode($("shop-stores"));
       $("shop-quote").hidden = true;
     });
     $("shop-addresses-load").addEventListener("click", loadAddresses);
     $("shop-stores-load").addEventListener("click", loadStores);
     $("shop-menu-load").addEventListener("click", loadMenu);
+    $("shop-menu-search").addEventListener("input", renderMenu);
+    $("shop-menu-category").addEventListener("change", renderMenu);
+    $("shop-menu-clear").addEventListener("click", () => {
+      $("shop-menu-search").value = "";
+      $("shop-menu-category").value = "all";
+      renderMenu();
+    });
     $("shop-price-load").addEventListener("click", quote);
     $("shop-submit").addEventListener("click", submit);
   });
