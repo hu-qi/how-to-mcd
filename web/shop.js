@@ -77,6 +77,30 @@
     renderList("家庭厨具", guide.equipment);
     renderList(guide.status === "unknown" ? "为什么暂不能提供专属配方" : "家庭参考步骤", guide.steps, true);
     renderList("食品安全与配方局限", guide.safety);
+    if (guide.relatedRecipeId) {
+      const related = create("button", "shop-item shop-primary shop-recipe-link",
+        "打开相关的完整社区食谱（含克数、步骤、人数换算） ↗");
+      related.type = "button";
+      related.addEventListener("click", () => {
+        const search = $("recipe-search");
+        // Reset recipe-filter state before locating the canonical Rust recipe.
+        const all = document.querySelector(".filter[data-filter='all']");
+        if (all) all.click();
+        if (search) {
+          search.value = "";
+          search.dispatchEvent(new Event("input", { bubbles:true }));
+        }
+        const card = [...document.querySelectorAll("#recipe-grid .recipe-card")]
+          .find(el => el.dataset.recipeId === guide.relatedRecipeId);
+        if (!card) return notice("相关家庭食谱尚未加载，请刷新后重试");
+        card.click();
+        root.hidden = true;
+        $("explore").scrollIntoView({ behavior:"smooth", block:"start" });
+      });
+      root.append(related);
+      root.append(create("p","shop-note",
+        "此为相近的社区独立食谱，不代表所选官方商品的实际配料、克重或制作工艺。"));
+    }
     if (guide.status === "unknown") {
       const link = create("a", "shop-item", "帮助社区补齐经过验证的家庭食谱 ↗");
       link.href = "https://github.com/hu-qi/how-to-mcd/issues";
