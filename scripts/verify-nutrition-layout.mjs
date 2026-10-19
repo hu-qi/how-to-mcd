@@ -14,6 +14,15 @@ try {
   for (const [name, width, height] of [["desktop", 1280, 900],["tablet", 800, 900],["mobile", 390, 844]]) {
     const context=await browser.newContext({viewport:{width,height},deviceScaleFactor:1,serviceWorkers:"block"});
     const page=await context.newPage();
+    // Test the candidate HTML too: the original bug was a missing visible
+    // nutrition guide outlet, even while the shop button handler was valid.
+    await page.route("**/how-to-mcd/**", async route => {
+      if (route.request().isNavigationRequest()) {
+        await route.fulfill({ path:"web/index.html", contentType:"text/html; charset=utf-8" });
+      } else {
+        await route.continue();
+      }
+    });
     await page.route("**/assets/app.css", async route=>route.fulfill({
       path:"web/app.css", contentType:"text/css; charset=utf-8"
     }));
@@ -56,9 +65,25 @@ try {
     const panel=page.locator(".nutrition-panel");
     await panel.scrollIntoViewIfNeeded();
     await panel.screenshot({path:`${out}/nutrition-${name}.png`,animations:"disabled",timeout:15000});
-    assert.ok(await page.locator(".nutrition-card .shop-guide-trigger").first().isVisible(),
+    const guideButton = page.locator(".nutrition-card .shop-guide-trigger").first();
+    assert.ok(await guideButton.isVisible(),
       "Non-official recipe guide action must be visible inside nutrition card");
-    console.log(`PASS ${name}: ${metrics.cards} nutrition cards, ${metrics.gridColumns} columns; no horizontal overflow; first name ${metrics.nameText}`);
+    assert.equal(await guideButton.getAttribute("aria-controls"), "nutrition-home-guide");
+    assert.equal(await page.locator("#shop-controls").isVisible(), false,
+      "Guest test must run with shopping section still hidden");
+    await guideButton.click();
+    await page.locator("#nutrition-home-guide").waitFor({state:"visible",timeout:12000});
+    assert.equal(await page.locator("#shop-home-guide").isVisible(), false,
+      "Guest guide must not render into the hidden authenticated shopping panel");
+    const description = await page.locator("#nutrition-home-guide").innerText();
+    assert.match(description, /社区非官方|商业配方|不是官方/);
+    assert.ok(await page.locator("#nutrition-home-guide li").count() >= 2);
+    await page.locator("#nutrition-home-guide").screenshot({
+      path:`${out}/nutrition-${name}-guide.png`, animations:"disabled",timeout:15000
+    });
+    await page.locator("#nutrition-home-guide .shop-home-guide-head button").click();
+    await page.locator("#nutrition-home-guide").waitFor({state:"hidden"});
+    console.log(`PASS ${name}: ${metrics.cards} nutrition cards, ${metrics.gridColumns} columns; guest recipe guide opens and closes, shopping auth not required`);
     await context.close();
   }
 } finally {
