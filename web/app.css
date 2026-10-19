@@ -37,3 +37,19 @@
 @media(max-width:510px){.nutrition-grid{grid-template-columns:1fr}.shop-form-grid{display:block}.shop-form-grid>.shop-field{margin:12px 0}.shop-nested{display:block}.shop-product .shop-item{font-size:12px;padding:9px}.shop-actions{align-items:center}}
 
 .shop-product .shop-actions{flex-wrap:wrap}.shop-product>.shop-item{flex-shrink:1;max-width:100%}
+
+/* Live official menu discovery and clearer cart quantity control. */
+.shop-menu-toolbar{display:grid;grid-template-columns:minmax(180px,2fr) minmax(145px,1fr) auto;align-items:end;gap:12px;margin-top:22px;padding:15px;background:#17271d;border:1px solid var(--line);border-radius:14px}
+.shop-menu-toolbar .shop-field{min-width:0}
+.shop-menu-toolbar .shop-note{grid-column:1/-1;margin:0}
+.shop-menu-toolbar .shop-item{white-space:nowrap}
+#shop-menu-source{margin:12px 0 8px}
+.shop-cart-line{flex-wrap:wrap}
+.shop-cart-line>strong{flex:1;min-width:140px}
+.shop-quantity{display:flex;align-items:center;gap:9px}
+.shop-quantity .shop-item{min-width:38px;text-align:center;font-size:16px;padding:8px 12px}
+.shop-quantity-value{min-width:22px;text-align:center;font-weight:800;font-variant-numeric:tabular-nums}
+.shop-menu-list .shop-product:focus-within{border-color:var(--lime)}
+.shop-menu-toolbar[hidden],#shop-menu-source[hidden]{display:none}
+@media(max-width:720px){.shop-menu-toolbar{grid-template-columns:1fr 1fr}.shop-menu-toolbar .shop-field:first-child{grid-column:1/-1}.shop-menu-toolbar .shop-note{grid-column:1/-1}}
+@media(max-width:440px){.shop-menu-toolbar{grid-template-columns:1fr}.shop-menu-toolbar .shop-field:first-child,.shop-menu-toolbar .shop-note{grid-column:auto}.shop-menu-toolbar .shop-item{width:100%}}
