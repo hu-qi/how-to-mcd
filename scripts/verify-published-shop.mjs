@@ -65,6 +65,26 @@ try {
   await page.locator("#shop-home-guide .shop-home-guide-head button").click();
   await page.locator("#shop-home-guide").waitFor({state:"hidden"});
   console.log("PASS: every official menu item has an honest community guide; no fake commercial formula");
+  const related = await page.evaluate(() => {
+    const items = [...document.querySelectorAll("#shop-menu .shop-product")];
+    for (let i = 0; i < items.length; i++) {
+      const label = items[i].querySelector("strong")?.textContent || "";
+      const guide = window.HowToMCDGuides?.resolve(label);
+      if (guide?.relatedRecipeId) return { index: i, id: guide.relatedRecipeId };
+    }
+    return null;
+  });
+  assert.ok(related, "Live official products should link to at least one full community recipe");
+  await page.locator("#shop-menu .shop-product").nth(related.index)
+    .locator(".shop-guide-trigger").click();
+  await page.locator("#shop-home-guide .shop-recipe-link").click();
+  const selectedId = await page.locator("#recipe-grid .recipe-card.selected")
+    .getAttribute("data-recipe-id");
+  assert.equal(selectedId, related.id, "Related guide must open the canonical Rust recipe");
+  assert.equal(await page.locator("#shop-home-guide").isVisible(), false);
+  assert.equal(await page.locator("#recipe-count").textContent(), "23");
+  console.log("PASS: live official product links to one of 23 quantified Rust/WASM recipes");
+
   const meta = await page.locator("#shop-menu-source").textContent();
   assert.match(meta, /麦当劳中国官方 MCP/);
   const firstName = (await page.locator("#shop-menu .shop-product strong").first().textContent()).trim();
