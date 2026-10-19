@@ -33,7 +33,7 @@ async function loaded(page) {
     { timeout: 45000 }
   );
   await page.locator(".recipe-card").first().waitFor({ timeout: 20000 });
-  assert.equal(await page.locator(".recipe-card").count(), 3, "expect three real Rust recipes");
+  assert.equal(await page.locator(".recipe-card").count(), 7, "expect seven real Rust recipes");
 }
 async function caption(message) {
   await page.evaluate((value) => {
