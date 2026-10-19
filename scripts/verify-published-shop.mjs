@@ -69,6 +69,10 @@ try {
   await page.locator("#shop-menu-category").selectOption("all");
   assert.equal(await page.locator("#shop-menu .shop-product").count(), productCount);
   console.log("PASS: official menu search, empty state, category selector, and reset");
+  await page.locator("#shop-menu .shop-product button").first().click();
+  await page.locator("#shop-detail").waitFor({ state: "visible", timeout: 90000 });
+  assert.match(await page.locator("#shop-detail").innerText(), /官方餐品详情/);
+  console.log("PASS: real official product detail displayed without inventing combo choices");
 
   // This only builds a local cart and requests a read-only price quote.
   await page.locator("#shop-menu .shop-product").first()
