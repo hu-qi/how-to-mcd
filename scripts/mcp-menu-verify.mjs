@@ -113,6 +113,19 @@ export function menuGuideCoverage(data) {
   }
   return counters;
 }
+// Only PUBLIC product names from the selected store's official menu. Never
+// include store IDs, addresses, account profiles, response blobs or tokens.
+// Names are sanitized and capped before diagnostic printing to Actions logs.
+export function unclassifiedPublicProductNames(data) {
+  const meals = data?.meals && typeof data.meals === "object" && !Array.isArray(data.meals)
+    ? Object.values(data.meals).filter(v => typeof v?.name === "string") : [];
+  const scrub = name => name.slice(0, 76)
+    .replace(/[\\r\\n\\t]+/g, " ")
+    .replace(/[0-9]{7,}/g, "[ID]")
+    .replace(/[A-Za-z0-9_.+-]+@[A-Za-z0-9.-]+/g, "[EMAIL]");
+  return [...new Set(meals.filter(meal => homeGuides.resolve(meal.name).status === "unknown")
+    .map(meal => scrub(meal.name)))].sort((a,b)=>a.localeCompare(b,"zh-CN")).slice(0,60);
+}
 const [mode, file] = process.argv.slice(2);
 if (mode === "stores") {
   process.stdout.write(JSON.stringify(selectedStore(result(file))));
@@ -126,6 +139,10 @@ if (mode === "stores") {
     coverage.fullRecipe, "products linked to a complete community recipe,",
     coverage.categoryOnly, "category guide only,",
     coverage.unknown, "commercial recipes unknown.");
+  if (process.env.HOWTOMCD_AUDIT_PUBLIC_NAMES === "1") {
+    console.log("Public product names requiring review (no IDs, stores, account data):",
+      JSON.stringify(unclassifiedPublicProductNames(data)));
+  }
 } else if (process.argv[1]?.endsWith("mcp-menu-verify.mjs")) {
   throw Error("Expected: stores|menu <private-file>");
 }
