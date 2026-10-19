@@ -498,6 +498,30 @@
       if (!Number.isInteger(data.price) || data.price < 0) throw Error("官方未返回有效人民币分价格");
       s.quote = data; s.quoteArgs = args;
       $("shop-price").textContent = money(data.price);
+      const breakdown = $("shop-price-breakdown");
+      clearNode(breakdown);
+      const showAmount = (label, value, negative = false) => {
+        if (!Number.isInteger(value) || value < 0) return;
+        const row = create("div", "shop-price-line");
+        row.append(create("span", "", label));
+        row.append(create("strong", "", (negative && value ? "−" : "") + money(value)));
+        breakdown.append(row);
+      };
+      showAmount("餐品金额", data.productPrice);
+      showAmount("配送费用", data.deliveryPrice);
+      showAmount("优惠减免", data.discount, true);
+      showAmount("餐具费用（若适用）", data.tablewarePrice);
+      if (Array.isArray(data.productList)) {
+        for (const item of data.productList.slice(0, 20)) {
+          if (typeof item.productName !== "string") continue;
+          const row = create("div", "shop-price-line shop-price-item");
+          row.append(create("span", "", item.productName + " × " + (item.quantity || 1)));
+          if (Number.isInteger(item.subtotal) && item.subtotal >= 0) {
+            row.append(create("span", "", money(item.subtotal)));
+          }
+          breakdown.append(row);
+        }
+      }
       $("shop-quote").hidden = false;
       $("shop-confirm").checked = false;
       $("shop-payment").replaceChildren();
