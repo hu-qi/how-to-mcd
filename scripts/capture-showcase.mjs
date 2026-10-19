@@ -152,7 +152,7 @@ try {
     desktopViewport: "1440x900",
     mobileViewport: "390x844",
     checked: [
-      "Page initializes three WASM-backed recipes",
+      "Page initializes seven WASM-backed recipes",
       "Pantry recommendation ranks chicken burger for supplied ingredients",
       "Rust WASM scales chicken burger to 600 g at four servings",
       "Shopping progress and guided cooking dialog work",
