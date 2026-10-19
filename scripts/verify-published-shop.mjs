@@ -32,6 +32,15 @@ try {
   assert.equal(new URL(config?.apiBase).origin, expected,
     "Published Pages API config does not point to the vetted production gateway");
   console.log("PASS: published Pages loaded the production HTTPS Rust API config");
+  assert.equal(await page.locator("#mcp-lookup").isEnabled(), true);
+  await page.locator("#mcp-lookup").click();
+  await page.locator("#nutrition-products .shop-product").first()
+    .waitFor({ state: "visible", timeout: 45000 });
+  assert.match(await page.locator("#nutrition-meta").textContent(), /官方公开快照/);
+  console.log("PASS: verified official nutrition snapshot accessible without a personal token");
+  await page.locator("#bench-quick-order").click();
+  assert.equal(new URL(page.url()).hash, "#official");
+  console.log("PASS: playful workbench quick order navigates to official shop");
   await page.locator("#shop-token").fill(token);
   await page.locator("#shop-connect button[type=submit]").click();
   await page.locator("#shop-controls").waitFor({ state: "visible", timeout: 120000 });
@@ -39,6 +48,14 @@ try {
   assert.equal(mistakenHealthCalls.length, 0,
     "Static Pages must never query nonexistent https://hu-qi.github.io/api/health");
   console.log("PASS: browser connected through hosted Rust gateway without Pages 404 API probes");
+  await page.locator("#mcp-lookup").click();
+  await page.waitForFunction(() =>
+    document.querySelector("#nutrition-meta")?.textContent?.includes("实时查询"),
+    null, { timeout: 90000 });
+  assert.ok((await page.locator("#nutrition-products .shop-product").count()) > 0);
+  assert.match(await page.locator("#nutrition-live-hint").textContent(), /实时查询成功/);
+  assert.equal(await page.locator("#mcp-lookup").isEnabled(), true);
+  console.log("PASS: live official nutritional data refreshed with personal token, no raw token exposed");
 
   await page.locator("#shop-city").fill("北京市");
   await page.locator("#shop-keyword").fill("朝阳区");
