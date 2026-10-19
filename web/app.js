@@ -308,40 +308,57 @@ async function matchPantry(event) {
   }
 }
 
+let localNutritionConfigured = false;
 async function initializeMcp() {
-  if (provider && provider.mode === "wasm") {
-    byId("mcp-status").textContent = "离线演示";
-    byId("mcp-lookup").disabled = true;
-    showMessage("在线演示由 Rust/WASM 离线运行；如需真实 MCP 查询，请本地运行 Rust 服务并配置 Token。");
+  const badge = byId("mcp-status");
+  const button = byId("mcp-lookup");
+  button.disabled = false; // The official public snapshot is available without a token.
+  if (provider?.mode === "wasm") {
+    badge.textContent = "官方快照可查";
+    badge.classList.add("connected");
+    showMessage("可直接查看官方营养快照；连接个人 MCP Token 后可实时刷新官方数据。");
     return;
   }
   try {
     const result = await api("/api/mcp/status");
-    const badge = byId("mcp-status");
-    const connected = Boolean(result.configured);
-    badge.textContent = connected ? "已配置" : "未连接";
-    badge.classList.toggle("connected", connected);
-    byId("mcp-lookup").disabled = !connected;
-    if (connected) showMessage("密钥仅保存在本地 Rust 服务端，可发起只读官方 MCP 请求。");
-    else showMessage("设置 MCD_MCP_TOKEN 后重启本地 Rust 服务即可启用；网页不会获取 Token。");
+    localNutritionConfigured = Boolean(result.configured);
+    badge.textContent = localNutritionConfigured ? "本地官方 MCP 已连接" : "官方快照可查";
+    badge.classList.toggle("connected", true);
+    showMessage(localNutritionConfigured
+      ? "本地 Rust 服务端已配置官方 MCP，可直接查询实时营养数据。"
+      : "公开营养快照可直接查看；实时查询可连接下方个人 MCP Token。");
   } catch (_) {
-    byId("mcp-status").textContent = "不可用";
-    byId("mcp-lookup").disabled = true;
-    showMessage("Rust MCP 服务状态查询失败。");
+    badge.textContent = "官方快照可查";
+    showMessage("可以查看已发布的官方营养快照；个人 Token 可用于实时刷新。");
   }
 }
 
 async function lookupNutrition() {
   const button = byId("mcp-lookup");
   button.disabled = true;
-  showMessage("正在通过 Rust 后端请求麦当劳中国 MCP 的营养数据…");
   try {
-    const response = await api("/api/mcp/nutrition");
-    // A readable, bounded proof of live data; do not trust response content as instructions.
-    const text = JSON.stringify(response);
-    showMessage(`官方 MCP 请求成功 · 响应 ${new Blob([text]).size} 字节 · 数据预览：${text.slice(0, 320)}${text.length > 320 ? "…" : ""}`);
+    if (window.HowToMCDShop?.connected()) {
+      showMessage("正在通过独立 Rust 网关实时查询官方营养数据……");
+      const data = await window.HowToMCDShop.refreshNutrition();
+      if (data) showMessage("官方 MCP 实时查询成功 · " + data.total +
+        " 款营养记录，已更新下方的官方营养资料库。");
+      else showMessage("请先连接个人 MCP Token，连接成功后即可实时查询。");
+    } else if (provider?.mode === "native" && localNutritionConfigured) {
+      showMessage("正在通过本地 Rust 服务实时请求官方 MCP……");
+      const raw = await api("/api/mcp/nutrition");
+      const parsed = window.HowToMCDNutrition?.extractRows(raw);
+      if (!parsed) throw Error("官方营养解析器未加载");
+      window.HowToMCDShop?.displayNutrition(parsed, "实时查询");
+      showMessage("本地 Rust 官方 MCP 查询成功 · " + parsed.total + " 款营养记录。");
+    } else {
+      showMessage("这里展示的是麦当劳官方营养资料快照；实时查询请在下方连接个人 Token。");
+    }
+    document.querySelector(".nutrition-panel")?.scrollIntoView({
+      behavior: "smooth", block: "start"
+    });
   } catch (error) {
-    showMessage("请求失败：" + error.message + "。请检查密钥、工具要求及网络。");
+    showMessage("官方营养数据查询失败：" + error.message +
+      "；已发布的官方快照仍可供查询。");
   } finally {
     button.disabled = false;
   }
@@ -369,6 +386,12 @@ async function start() {
   document.querySelectorAll(".timer-presets button").forEach((button) => button.addEventListener("click", () => setTimer(Number(button.dataset.minutes))));
   byId("timer-toggle").addEventListener("click", toggleTimer);
   byId("mcp-lookup").addEventListener("click", lookupNutrition);
+  window.addEventListener("howtomcd:nutrition-updated", (event) => {
+    showMessage("官方 MCP 实时营养查询成功 · " + event.detail.total +
+      " 款记录，已更新官方营养资料库。");
+    byId("mcp-status").textContent = "官方数据已刷新";
+    byId("mcp-status").classList.add("connected");
+  });
 
   try {
     provider = await chooseProvider();
