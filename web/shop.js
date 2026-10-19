@@ -614,7 +614,10 @@
       $("shop-address-row").hidden = s.type !== 2;
       s.store = null; s.cart.clear(); s.quote = null; s.quoteArgs = null; s.menu = {}; s.menuCategories = [];
       $("shop-menu-toolbar").hidden = true; $("shop-menu-source").hidden = true;
-      clearNode($("shop-menu")); clearNode($("shop-cart")); clearNode($("shop-stores"));
+      clearNode($("shop-menu")); clearNode($("shop-stores")); clearNode($("shop-payment"));
+      $("shop-store-name").textContent = "尚未选择门店";
+      $("shop-detail").hidden = true;
+      renderCart();
       $("shop-quote").hidden = true;
     });
     $("shop-addresses-load").addEventListener("click", loadAddresses);
