@@ -152,6 +152,7 @@
         <div class="panel shop-panel">
           <span class="mini-label">LIVE OFFICIAL MENU / PERSONAL SESSION</span>
           <h3>连接个人 MCP Token · 选择真实门店点餐</h3>
+          <p class="shop-note">接口状态：<a href="https://how-to-mcd-api.vercel.app/api/health" target="_blank" rel="noopener noreferrer">Vercel Rust API 健康检查 ↗</a>（GitHub Pages 不提供 <code>/api/health</code>）。</p>
           <p class="shop-note">你的个人 Token 仅在当前页面内存中保留，查询时通过 HTTPS 发往独立 Rust MCP 网关，不保存在浏览器存储、仓库或 GitHub Actions。网关不使用站长的 Token；如果网关不可用将停止点餐连接。也可在本机运行 <code>cargo run -- serve</code>。创建真实订单须明确确认并重新核价。</p>
 
           <form class="shop-connection" id="shop-connect">
@@ -187,10 +188,22 @@
               <strong id="shop-store-name">尚未选择门店</strong>
               <button type="button" class="shop-item shop-primary" id="shop-menu-load">读取该门店所有可售餐品</button>
             </div>
+            <div class="shop-menu-toolbar" id="shop-menu-toolbar" hidden>
+              <label class="shop-field">查找官方在售餐品
+                <input id="shop-menu-search" type="search" placeholder="输入餐品名称或商品编号" autocomplete="off">
+              </label>
+              <label class="shop-field">菜单分类
+                <select id="shop-menu-category"><option value="all">全部分类</option></select>
+              </label>
+              <button id="shop-menu-clear" type="button" class="shop-item">清除筛选</button>
+              <p id="shop-menu-count" class="shop-note" aria-live="polite"></p>
+            </div>
+            <p class="shop-note" id="shop-menu-source" hidden></p>
             <div id="shop-detail" class="shop-detail" hidden></div>
             <div id="shop-menu" class="shop-menu-list" aria-live="polite"></div>
             <div class="shop-cart-box">
               <h3>已选购的官方餐品</h3>
+              <p class="shop-note">可调整每款餐品数量；任何改动都会清除先前报价，须重新向官方询价。</p>
               <div id="shop-cart">请先选择门店并添加商品。</div>
               <button type="button" class="shop-item shop-primary" id="shop-price-load">向官方获取实时应付报价</button>
               <div id="shop-quote" hidden>
