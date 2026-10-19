@@ -83,6 +83,10 @@ GitHub Actions 的 [Rust WASM Demo and Pages](.github/workflows/wasm-pages.yml) 
 
 **真实营养资料库**：生产环境 GitHub Actions 使用受保护的 MCD_MCP_TOKEN 调用官方 list-nutrition-foods，仅将餐品名称与公开营养字段提取到静态目录。公开目录不包含令牌、账户、地址或订单信息。它是官方常见餐品营养信息，不代表全国所有门店此刻均有售。
 
+**工作台官方营养查询（已修复）**：公开 GitHub Pages 的食谱计算确实采用离线 Rust/WASM，但不代表无法查询官方数据。无需 Token 时，工作台的「查询官方营养数据」跳转到 Actions 从真实 MCP 同步、校验后公开发布的营养快照；输入并连接自己的 MCP Token 后，同一按钮及资料库的「实时刷新」按钮通过 Vercel Rust HTTPS 网关调用 `list-nutrition-foods`，在浏览器内解析官方 JSON/TOON，只展示名称、热量、蛋白质、脂肪、钠等公开营养字段，并标示「公开快照」或「实时查询」和数据时间。不会公开 GitHub Actions Secret，也不会把原始认证响应直接展示在页面。独立 Rust 服务已配置本地 Token 时仍可走本地只读 MCP。
+
+**厨房偷懒通道**：「锅铲先下班，嘴巴不加班。🍔」提供工作台一键跳转官方实时点餐页面；进入后仍需用户个人 Token，创建订单前再次核价并确认，绝不自动支付。
+
 **实时菜单与下单**：输入自己的个人 Token → 按城市搜索取餐门店，或选择官方账户中的已有外送地址 → 使用 query-meals 获取该店可售餐品与分类 → query-meal-detail 看套餐组成 → 加入选购清单 → calculate-price 获取真正含配送费和优惠的报价 → 核对并确认 → 再次询价确保金额未变化 → create-order 创建真实订单并由用户进入麦当劳官方支付链接。不会自动付款。首期支持到店自取与麦乐送，尚不支持复杂套餐改配、预约与积分兑换。
 
 **公开 Pages 与 Rust API 的正确地址**：
