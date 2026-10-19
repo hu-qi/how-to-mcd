@@ -16,6 +16,19 @@
       safety: ["此为家庭替代方案，不代表官方火腿扒配料或肉类加工工艺。","芝士、面包和火腿的过敏原以购买的产品标签为准。"]
     },
     {
+      id: "black-cocoa", match: /浓浓黑巧|黑巧（冰|黑巧\\(冰/,
+      title: "黑巧可可饮家庭替代参考", minutes: 10,
+      ingredients: ["无糖可可粉", "巴氏杀菌牛奶或符合即饮标准的植物饮品（自行选择）", "少量饮用水"],
+      equipment: ["小奶锅", "搅拌器"],
+      steps: [
+        "从名称无法确认商品中的乳成分、糖量或浓缩配方；选择自己适用的牛奶或植物饮品作为家用替代。",
+        "将少量可可粉和温饮用水调匀，避免干粉结块。",
+        "温热版本用小奶锅轻微加热，冰饮版本先充分冷却再放入可安全食用的冰块。",
+        "按个人口味调整甜度，不声称与官方黑巧饮品的商业口味及营养值相同。"
+      ],
+      safety: ["可可粉或巧克力可能含咖啡因，关注敏感人群。", "奶和植物饮品的过敏原须依所选配料标签核查。"]
+    },
+    {
       id: "oat-cocoa", match: /燕麦黑巧|燕麦巧克力饮/, title: "燕麦热可可家庭替代做法", minutes: 10,
       ingredients: ["正规预包装燕麦饮品","纯可可粉","可选少量糖"], equipment: ["小奶锅","搅拌器"],
       steps: ["选择标示可直接饮用的燕麦饮品，检查冷链和过敏原提示。","先将少量温饮用水与可可粉调匀成糊。","锅内将燕麦饮品小火加热，加入可可糊搅匀；如喜欢冰饮则充分冷却后使用安全冰块。","按个人口味调整甜度后饮用；这不是官方浓浓燕麦黑巧配方。"],
@@ -270,6 +283,7 @@
     "ice-cream":"ice-cream-sundae", milkshake:"fruit-milkshake",
     latte:"milk-latte", coffee:"drip-coffee", tea:"fruit-tea",
     "hot-chocolate":"hot-cocoa", juice:"sparkling-lemonade",
+    "branded-juice":"sparkling-lemonade",
     corn:"steamed-corn", "hash-brown":"potato-hashbrown",
     soup:"vegetable-soup", "cookie-cake":"oat-cookies",
     "pie-dessert":"oat-cookies"
