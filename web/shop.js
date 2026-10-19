@@ -164,9 +164,12 @@
   // The static Pages build may publish only a PUBLIC backend URL.
   // No authentication secret or OAuth token is ever bundled here.
   async function resolveBackend() {
-    const local = await fetch("/api/health", { cache: "no-store" })
-      .then(async r => r.ok && (await r.json()).service === "how-to-mcd")
-      .catch(() => false);
+    // Static GitHub Pages intentionally has no /api/health. Do not issue
+    // a misleading 404 probe against hu-qi.github.io.
+    const local = location.hostname.endsWith(".github.io") ? false :
+      await fetch("/api/health", { cache: "no-store" })
+        .then(async r => r.ok && (await r.json()).service === "how-to-mcd")
+        .catch(() => false);
     if (local) return { mode: "local", apiBase: "" };
     try {
       const file = new URL("api-config.json", document.baseURI);
