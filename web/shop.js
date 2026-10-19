@@ -326,9 +326,38 @@
       left.append(create("strong", "", info.name));
       const priceText = info.currentPrice == null || info.currentPrice === ""
         ? "成交价以最终官方询价为准"
-        : "门店显示价格：" + String(info.currentPrice) + "（最终以官方询价为准）";
+        : "门店标价 ¥" + String(info.currentPrice) + "（人民币元，最终以官方询价为准）";
       left.append(create("small", "", "商品编号 " + code + " · " + priceText));
-      if (Array.isArray(tags) && tags.length) left.append(create("small", "", tags.join(" · ")));
+      if (info.originalPrice != null && info.originalPrice !== "" &&
+          Number(info.originalPrice) > Number(info.currentPrice) &&
+          Number.isFinite(Number(info.originalPrice))) {
+        const price = create("small", "shop-original-price", "原价 ¥" + String(info.originalPrice));
+        left.append(price);
+      }
+      const offer = [
+        typeof info.discountType === "string" && info.discountType.trim()
+          ? info.discountType.trim() : null,
+        ...(Array.isArray(tags) ? tags.map(t => String(t)) : [])
+      ].filter(Boolean);
+      if (offer.length) left.append(create("small", "shop-offer-tag", [...new Set(offer)].join(" · ")));
+      // Only trust actual fully qualified images returned by the official menu;
+      // never construct paths or invent an image for missing assets.
+      try {
+        if (typeof info.image === "string") {
+          const imageUrl = new URL(info.image);
+          const host = imageUrl.hostname.toLowerCase();
+          if (imageUrl.protocol === "https:" && !imageUrl.username && !imageUrl.password &&
+              (host === "mcd.cn" || host.endsWith(".mcd.cn") ||
+               host === "mcdchina.net" || host.endsWith(".mcdchina.net"))) {
+            const image = create("img", "shop-official-image");
+            image.src = imageUrl.href;
+            image.alt = "官方餐品图片：" + info.name;
+            image.loading = "lazy";
+            image.decoding = "async";
+            row.append(image);
+          }
+        }
+      } catch (_) { /* missing/relative images are not synthesized */ }
       const actions = create("div", "shop-actions");
       const details = create("button", "shop-item", "查看详情");
       details.type = "button";
