@@ -117,7 +117,7 @@ jobs:
           const wasm = await import('./site/pkg/howtomcd_wasm.js');
           await wasm.default(readFileSync('./site/pkg/howtomcd_wasm_bg.wasm'));
           const list = JSON.parse(wasm.recipes_json());
-          assert.equal(list.length, 7);
+          assert.equal(list.length, 23);
           const scaled = JSON.parse(wasm.recipe_json('chicken-burger', 4));
           assert.equal(scaled.requested_servings, 4);
           assert.equal(scaled.ingredients[0].amount, 600);
