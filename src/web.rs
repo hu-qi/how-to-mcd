@@ -49,6 +49,9 @@ fn app() -> Router {
         .route("/assets/shop.js", get(|| async {
             ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../web/shop.js"))
         }))
+        .route("/assets/home-guides.js", get(|| async {
+            ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../web/home-guides.js"))
+        }))
         .route("/api/health", get(health))
         .route("/api/recipes", get(list_recipes))
         .route("/api/recipes/{id}", get(recipe_detail))

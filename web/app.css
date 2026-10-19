@@ -66,3 +66,20 @@
 .shop-price-line{display:flex;justify-content:space-between;gap:14px;font-size:12px;line-height:1.6}
 .shop-price-line strong{color:var(--lime);white-space:nowrap;font-variant-numeric:tabular-nums}
 .shop-price-line.shop-price-item{border-top:1px dashed var(--line);padding-top:7px;color:var(--muted)}
+
+/* Non-official category guides: every official menu card gets an entry point,
+ * but uncertain commercial formulas are explicitly unknown. */
+.shop-home-guide{margin:20px 0;padding:23px 25px;border:1px solid #a4c7787a;
+  border-radius:15px;background:linear-gradient(130deg,#223523,#112219);overflow-wrap:anywhere}
+.shop-home-guide[hidden]{display:none}
+.shop-home-guide-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.shop-home-guide h3{font-size:21px;margin:14px 0 10px;line-height:1.35}
+.shop-home-guide h4{color:var(--lime);font-size:13px;margin:18px 0 8px}
+.shop-home-guide .shop-note{line-height:1.65}
+.shop-guide-list{margin:0;padding-left:24px;line-height:1.8}
+.shop-guide-list li{font-size:13px;color:var(--text);padding:4px 0}
+.shop-home-guide>a.shop-item{display:inline-block;margin-top:17px}
+.shop-guide-trigger{border-color:#bad78a6b}
+.shop-guide-trigger:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+@media(max-width:580px){.shop-home-guide{padding:17px}.shop-home-guide h3{font-size:17px}
+.shop-guide-list li{font-size:12px}}

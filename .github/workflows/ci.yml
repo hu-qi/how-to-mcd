@@ -45,6 +45,7 @@ jobs:
           curl -fsS http://127.0.0.1:3100/ | grep -q "HOW TO MCD"
           curl -fsS http://127.0.0.1:3100/assets/app.css | grep -q "recipe-card"
           curl -fsS http://127.0.0.1:3100/assets/app.js | grep -q "chooseRecipe"
+          curl -fsS http://127.0.0.1:3100/assets/home-guides.js | grep -q "HowToMCDGuides"
           curl -fsS http://127.0.0.1:3100/api/recipes/chicken-burger?servings=4 | grep -Eq '"amount":600(\.0)?'
           curl -fsS 'http://127.0.0.1:3100/api/suggestions?ingredients=potato' >/dev/null
           echo "Rust web, pantry match and server-side ingredient scaling verified"

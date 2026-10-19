@@ -53,6 +53,18 @@ try {
   const productCount = await page.locator("#shop-menu .shop-product").count();
   assert.ok(productCount > 0, "Published page did not render genuine store menu");
   console.log(`PASS: real stores and ${productCount} official menu items rendered in live browser`);
+  // The menu is genuine and store-dependent: assert one usable reference per
+  // live product; never pretend these are McDonald's commercial formulas.
+  const guideLinks = await page.locator("#shop-menu .shop-guide-trigger").count();
+  assert.equal(guideLinks, productCount,
+    "Every actual official menu item must have a transparent cooking-guide entry");
+  await page.locator("#shop-menu .shop-guide-trigger").first().click();
+  await page.locator("#shop-home-guide").waitFor({state:"visible"});
+  assert.match(await page.locator("#shop-home-guide").textContent(), /社区非官方|商业配方/);
+  assert.ok(await page.locator("#shop-home-guide li").count() >= 2);
+  await page.locator("#shop-home-guide .shop-home-guide-head button").click();
+  await page.locator("#shop-home-guide").waitFor({state:"hidden"});
+  console.log("PASS: every official menu item has an honest community guide; no fake commercial formula");
   const meta = await page.locator("#shop-menu-source").textContent();
   assert.match(meta, /麦当劳中国官方 MCP/);
   const firstName = (await page.locator("#shop-menu .shop-product strong").first().textContent()).trim();
