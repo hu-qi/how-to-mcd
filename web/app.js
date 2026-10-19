@@ -9,8 +9,8 @@ const state = {
 };
 
 const byId = (id) => document.getElementById(id);
-const emojiFor = (id) => ({ "chicken-burger": "🍔", "crispy-fries": "🍟", "chicken-nuggets": "🍗", "beef-burger": "🧀", "fish-sandwich": "🐟", "breakfast-muffin": "🍳", "apple-turnover": "🥧" }[id] || "🍽️");
-const toneFor = (id) => ({ "chicken-burger": "tone-one", "crispy-fries": "tone-two", "chicken-nuggets": "tone-three", "beef-burger": "tone-two", "fish-sandwich": "tone-one", "breakfast-muffin": "tone-three", "apple-turnover": "tone-two" }[id] || "tone-one");
+const emojiFor = (id) => ({ "chicken-burger": "🍔", "crispy-fries": "🍟", "chicken-nuggets": "🍗", "beef-burger": "🧀", "fish-sandwich": "🐟", "breakfast-muffin": "🍳", "apple-turnover": "🥧", "chicken-wings": "🍗", "chicken-wrap": "🌯", "potato-hashbrown": "🥔", "steamed-corn": "🌽", "ice-cream-sundae": "🍦", "milk-latte": "☕", "hot-cocoa": "🍫", "oat-cookies": "🍪", "breakfast-porridge": "🍚", "garden-salad": "🥗", "fruit-tea": "🍹", "fruit-milkshake": "🥤", "sparkling-lemonade": "🍋", "vegetable-soup": "🥣", "drip-coffee": "☕", "banana-pancake": "🥞" }[id] || "🍽️");
+const toneFor = (id) => ({ "chicken-burger": "tone-one", "crispy-fries": "tone-two", "chicken-nuggets": "tone-three", "beef-burger": "tone-two", "fish-sandwich": "tone-one", "breakfast-muffin": "tone-three", "apple-turnover": "tone-two", "chicken-wings": "tone-one", "chicken-wrap": "tone-two", "potato-hashbrown": "tone-three", "steamed-corn": "tone-one", "ice-cream-sundae": "tone-two", "milk-latte": "tone-three", "hot-cocoa": "tone-one", "oat-cookies": "tone-two", "breakfast-porridge": "tone-three", "garden-salad": "tone-one", "fruit-tea": "tone-two", "fruit-milkshake": "tone-three", "sparkling-lemonade": "tone-one", "vegetable-soup": "tone-two", "drip-coffee": "tone-three", "banana-pancake": "tone-one" }[id] || "tone-one");
 const showMessage = (message) => { byId("mcp-feedback").textContent = message; };
 const formatAmount = (n) => Number.isInteger(n) ? String(n) : String(Number(n.toFixed(2)));
 
@@ -83,6 +83,7 @@ function renderCards() {
     button.type = "button";
     if (state.selected && state.selected.recipe.id === recipe.id) button.classList.add("selected");
     button.setAttribute("aria-label", `选择食谱：${recipe.name}`);
+    button.dataset.recipeId = recipe.id;
 
     const art = make("div", `recipe-art ${toneFor(recipe.id)}`);
     art.append(make("span", "recipe-art-tag", "RECIPE / " + String(index + 1).padStart(2, "0")));
