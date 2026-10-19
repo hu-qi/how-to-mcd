@@ -33,7 +33,7 @@ async function loaded(page) {
     { timeout: 45000 }
   );
   await page.locator(".recipe-card").first().waitFor({ timeout: 20000 });
-  assert.equal(await page.locator(".recipe-card").count(), 7, "expect seven real Rust recipes");
+  assert.ok((await page.locator(".recipe-card").count()) >= 23, "expect 23+ real Rust recipes");
 }
 async function caption(message) {
   await page.evaluate((value) => {
@@ -152,7 +152,7 @@ try {
     desktopViewport: "1440x900",
     mobileViewport: "390x844",
     checked: [
-      "Page initializes seven WASM-backed recipes",
+      "Page initializes 23+ WASM-backed community recipes",
       "Pantry recommendation ranks chicken burger for supplied ingredients",
       "Rust WASM scales chicken burger to 600 g at four servings",
       "Shopping progress and guided cooking dialog work",
